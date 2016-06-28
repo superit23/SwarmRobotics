@@ -1,0 +1,4 @@
+display: SwarmFlock
+description: Turtlebot swarm flocking behaviour.
+compatibility: rocon:/
+launch: swarmflock.launch
