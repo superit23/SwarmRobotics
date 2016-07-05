@@ -23,9 +23,8 @@ rospy.set_param("/boids/alignWeight", str(alignWeight))
 rospy.set_param("/boids/cohWeight", str(cohWeight))
 
 for i in range(1, len(sys.argv)):
-  location = np.random.uniform(-250, 250, size=(1,2))
   #os.system("./nRobo.py " + str(sys.argv[i]) + " " + str(location))
-  SwarmRobo(sys.argv[i], location)
+  SwarmRobo(sys.argv[i])
 
 #boids = []
 

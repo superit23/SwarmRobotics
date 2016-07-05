@@ -21,19 +21,27 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 import rospy
 from geometry_msgs.msg import Twist
+from nav_msgs.msg import Odometry
 from math import radians
 import sys
 from boid import Boid
 from swarmflock.msg import BoidMsg
 import numpy as np
+import copy
 
 class SwarmRobo():
+
+  def odom_received(self, msg):
+    if(msg.header.seq % 100 == 0):
+      self.odom = msg
+      #print self.odom
+
 
   def msg_received(self, msg):
     # The first boolean expression makes sure we're not including ourselves.
     # The second boolean expression doesn't take a second message from that robot.
     # self.responses will clear when patience expires.
-    # The third boolean expression makes sure we haven't just seen this message.
+    # [DEPRECATED] The third boolean expression makes sure we haven't just seen this message.
 
     if(msg.robotName != self.robotName and not
        any(resp.robotName == msg.robotName for resp in self.responses)):# and not
@@ -44,59 +52,81 @@ class SwarmRobo():
       #print msg
       #print msg.header.seq
 
-
+  # This is the callback for the patience timer. When this method is called, the robot assumes
+  # all communicating members have broadcasted their messages. We now begin to process the information
+  # and direct the bot.
   def patience_call(self, event):
+    boids = []
+
     for resp in self.responses:
       print resp
+      nBoid = copy.deepcopy(self.boid)
+      nBoid.location = resp.location
+      nBoid.velocity = resp.velocity
+      boids.append(nBoid)
+
+    self.boid.step(boids)
 
     #self.pastSeqs = self.pastSeqs[len(self.responses) - 1::]
     self.responses = []
 
 
-  def __init__(self, robotName, location):
+
+  def __init__(self, robotName):
     self.robotName = robotName
 
-    # initiliaze
+    # Initiliaze
     rospy.init_node('swarmmember_' + self.robotName, anonymous=False)
 
-    # What to do you ctrl + c    
+    # What to do on CTRL + C    
     rospy.on_shutdown(self.shutdown)
-      
-    self.cmd_vel = rospy.Publisher('/' + self.robotName + '/cmd_vel_mux/input/navi', Twist, queue_size=10)
+    
+    # Setup communication channels
+    self.cmd_vel  = rospy.Publisher('/' + self.robotName + '/cmd_vel_mux/input/navi', Twist, queue_size=10)
+    self.odom_sub = rospy.Subscriber('/' + self.robotName + '/odom', Odometry, self.odom_received)
     self.boid_pub = rospy.Publisher('/boid', BoidMsg, queue_size=10)        
     self.boid_sub = rospy.Subscriber('/boid', BoidMsg, self.msg_received)
 
-    maxSpeed = rospy.get_param("/boids/maxSpeed")
-    maxForce = rospy.get_param("/boids/maxForce")
-    desiredSep = rospy.get_param("/boids/desiredSep")
-    neighR = rospy.get_param("/boids/neighborRadius")
-    sepWeight = rospy.get_param("/boids/sepWeight")
-    alignWeight = rospy.get_param("/boids/alignWeight")
-    cohWeight = rospy.get_param("/boids/cohWeight")
+    # Grab global parameters
+    self.maxSpeed    = float(rospy.get_param("/boids/maxSpeed"))
+    self.maxForce    = float(rospy.get_param("/boids/maxForce"))
+    self.desiredSep  = float(rospy.get_param("/boids/desiredSep"))
+    self.neighR      = float(rospy.get_param("/boids/neighborRadius"))
+    self.sepWeight   = float(rospy.get_param("/boids/sepWeight"))
+    self.alignWeight = float(rospy.get_param("/boids/alignWeight"))
+    self.cohWeight   = float(rospy.get_param("/boids/cohWeight"))
 
-    self.boid = Boid(location, maxSpeed, maxForce, desiredSep, neighR, sepWeight, alignWeight, cohWeight)
 
-    #5 HZ
+    # Grab current location from odometry
+    rospy.sleep(1)
+
+    if(hasattr(self, 'odom')):
+      location = np.matrix([self.odom.pose.pose.position.x, self.odom.pose.pose.position.y])
+    else:
+      rospy.loginfo('No response from odometry; randomizing Boid position')
+      location = np.random.uniform(-250, 250, size=(1,2))
+
+    # Create Boid representation
+    self.boid = Boid(location, self.maxSpeed, self.maxForce, self.desiredSep, self.neighR, self.sepWeight, self.alignWeight, self.cohWeight)
+
+    # 5 Hz
     r = rospy.Rate(5);
 
     self.patience = rospy.Timer(rospy.Duration(1), self.patience_call)
     self.responses = []
-    self.pastSeqs = []
+    #self.pastSeqs = []
 
-    # create two different Twist() variables.  One for moving forward.  One for turning 45 degrees.
-
-    # let's go forward at 0.2 m/s
+    # Let's go forward at 0.2 m/s
     move_cmd = Twist()
     move_cmd.linear.x = 0.2
-    # by default angular.z is 0 so setting this isn't required
+    # By default angular.z is 0 so setting this isn't required
 
-    #let's turn at 45 deg/s
+    # Let's turn at 45 deg/s
     turn_cmd = Twist()
     turn_cmd.linear.x = 0
     turn_cmd.angular.z = radians(45); #45 deg/s in radians/s
 
-    #two keep drawing squares.  Go forward for 2 seconds (10 x 5 HZ) then turn for 2 second
-    count = 0
+
     while not rospy.is_shutdown():
       msg = BoidMsg()
       msg.robotName = self.robotName
@@ -109,7 +139,7 @@ class SwarmRobo():
 
 
   def shutdown(self):
-    # stop turtlebot
+    # Stop turtlebot
     rospy.loginfo("Stopping member " + self.robotName)
     self.cmd_vel.publish(Twist())
     rospy.sleep(1)
@@ -118,6 +148,6 @@ if __name__ == '__main__':
   try:
     SwarmRobo(sys.argv[1], sys.argv[2])
   except rospy.exceptions.ROSInterruptException as ex:
-    rospy.loginfo("node terminated.")
+    rospy.loginfo("Node terminated.")
 
 
