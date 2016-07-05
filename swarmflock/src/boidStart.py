@@ -4,6 +4,7 @@ import numpy as np
 import os
 import rospy
 import sys
+from nRobo import SwarmRobo
 
 maxSpeed = 4
 maxForce = 0.5
@@ -23,7 +24,8 @@ rospy.set_param("/boids/cohWeight", str(cohWeight))
 
 for i in range(1, len(sys.argv)):
   location = np.random.uniform(-250, 250, size=(1,2))
-  os.system("./nRobo.py " + str(sys.argv[i]) + " " + str(location))
+  #os.system("./nRobo.py " + str(sys.argv[i]) + " " + str(location))
+  SwarmRobo(sys.argv[i], location)
 
 #boids = []
 
