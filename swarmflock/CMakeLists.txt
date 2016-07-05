@@ -49,7 +49,7 @@ add_message_files(
   FILES
 #   Message1.msg
 #   Message2.msg
-  Boid.msg
+  BoidMsg.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -152,7 +152,9 @@ include_directories(
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
  install(PROGRAMS
-   scripts/boidStart.py
+   src/boidStart.py
+   src/nRobo.py
+   src/boid.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
 

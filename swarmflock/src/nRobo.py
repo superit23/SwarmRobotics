@@ -23,18 +23,22 @@ import rospy
 from geometry_msgs.msg import Twist
 from math import radians
 import sys
-import boid
+from boid import Boid
+from swarmflock.msg import BoidMsg
 
 class SwarmRobo():
     def __init__(self, robotName, location):
+
+        self.robotName = robotName
+
         # initiliaze
-        rospy.init_node('swarmmember_' + robotName, anonymous=False)
+        rospy.init_node('swarmmember_' + self.robotName, anonymous=False)
 
         # What to do you ctrl + c    
         rospy.on_shutdown(self.shutdown)
         
-        self.cmd_vel = rospy.Publisher('/' + robotName + '/cmd_vel_mux/input/navi', Twist, queue_size=10)
-        
+        self.cmd_vel = rospy.Publisher('/' + self.robotName + '/cmd_vel_mux/input/navi', Twist, queue_size=10)
+        self.boid_pub = rospy.Publisher('/' + self.robotName + '/boid', BoidMsg, queue_size=10)        
         
         maxSpeed = rospy.get_param("/boids/maxSpeed")
         maxForce = rospy.get_param("/boids/maxForce")
@@ -44,7 +48,7 @@ class SwarmRobo():
         alignWeight = rospy.get_param("/boids/alignWeight")
         cohWeight = rospy.get_param("/boids/cohWeight")
 
-        self.boid = boid.Boid(location, maxSpeed, maxForce, desiredSep, neighR, sepWeight, alignWeight, cohWeight)
+        self.boid = Boid(location, maxSpeed, maxForce, desiredSep, neighR, sepWeight, alignWeight, cohWeight)
 
 	# 5 HZ
         r = rospy.Rate(5);
@@ -64,22 +68,11 @@ class SwarmRobo():
 	#two keep drawing squares.  Go forward for 2 seconds (10 x 5 HZ) then turn for 2 second
 	count = 0
         while not rospy.is_shutdown():
-	    # go forward 0.4 m (2 seconds * 0.2 m / seconds)
-	    rospy.loginfo("Going Straight")
-            for x in range(0,10):
-                self.cmd_vel.publish(move_cmd)
-                r.sleep()
-	    # turn 90 degrees
-	    rospy.loginfo("Turning")
-            for x in range(0,10):
-                self.cmd_vel.publish(turn_cmd)
-                r.sleep()            
-	    count = count + 1
-	    if(count == 4): 
-                count = 0
-	    if(count == 0): 
-                rospy.loginfo("TurtleBot should be close to the original starting position (but it's probably way off)")
-        
+	    self.boid_pub.publish(self.boid)
+
+
+
+
     def shutdown(self):
         # stop turtlebot
         rospy.loginfo("Stop Drawing Squares")
@@ -89,7 +82,7 @@ class SwarmRobo():
 if __name__ == '__main__':
     try:
         SwarmRobo(sys.argv[1], sys.argv[2])
-    except:
+    except rospy.ROSInterruptException as ex:
         rospy.loginfo("node terminated.")
 
 

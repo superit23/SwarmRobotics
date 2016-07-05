@@ -3,6 +3,7 @@ import boid
 import numpy as np
 import os
 import rospy
+import sys
 
 maxSpeed = 4
 maxForce = 0.5
@@ -20,9 +21,9 @@ rospy.set_param("/boids/sepWeight", str(sepWeight))
 rospy.set_param("/boids/alignWeight", str(alignWeight))
 rospy.set_param("/boids/cohWeight", str(cohWeight))
 
-for i in range(1, sys.argv):
+for i in range(1, len(sys.argv)):
   location = np.random.uniform(-250, 250, size=(1,2))
-  os.system("./nRobo.py " + sys.argv[i], location)
+  os.system("./nRobo.py " + str(sys.argv[i]) + " " + str(location))
 
 #boids = []
 
