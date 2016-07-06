@@ -7,12 +7,12 @@ import sys
 from nRobo import SwarmRobo
 
 maxSpeed = 0.65
-maxForce = 0.08
-desiredSep = 5
-neighborRadius = 15
-sepWeight = 1
-alignWeight = 1
-cohWeight = 2
+maxForce = 0.24
+desiredSep = 3
+neighborRadius = 10
+sepWeight = 0.5
+alignWeight = 0.6
+cohWeight = 0.8
 
 rospy.set_param("/boids/maxSpeed", str(maxSpeed))
 rospy.set_param("/boids/maxForce", str(maxForce))

@@ -4,12 +4,18 @@
 import rospy
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
+import math
 from math import radians
 import sys
 from boid import Boid
 from swarmflock.msg import BoidMsg
 import numpy as np
 import copy
+import vecutils
+import tf
+from tf.transformations import euler_from_quaternion
+import actionlib
+from move_base_msgs.msg import *
 
 class SwarmRobo():
 
@@ -29,9 +35,7 @@ class SwarmRobo():
        #any(msg.header.seq == seq for seq in self.pastSeqs)):
       
       self.responses.append(msg)
-      #self.pastSeqs.append(msg.header.seq)
-      #print msg
-      #print msg.header.seq
+
 
   # This is the callback for the patience timer. When this method is called, the robot assumes
   # all communicating members have broadcasted their messages. We now begin to process the information
@@ -47,19 +51,64 @@ class SwarmRobo():
       nBoid.velocity = resp.velocity
       boids.append(nBoid)
 
-    oldLocation = self.boid.location
+    odom = self.odom
+
+    self.boid.location = np.matrix([odom.pose.pose.position.x, odom.pose.pose.position.y])
+    #oldLocation = self.boid.location
     self.boid.step(boids)
 
     #self.pastSeqs = self.pastSeqs[len(self.responses) - 1::]
     self.responses = []
 
     #angle = angle_between(location, self.boid.location)
-    delta = oldLocation - self.boid.location
-    move_cmd = Twist()
-    move_cmd.linear.x = delta[0, 0]
-    move_cmd.linear.y = delta[0, 1]
+    #delta = oldLocation - self.boid.location
+    delta = self.boid.velocity
+    #move_cmd = Twist()
+    #move_cmd.linear.x = delta[0, 0]
+    #move_cmd.linear.y = delta[0, 1]
 
-    self.cmd_vel.publish(move_cmd)
+    # web.engr.oregonstate.edu/~kraftko/code/me456_hw2/lab2_KK.py
+    xOr = odom.pose.pose.orientation.x
+    yOr = odom.pose.pose.orientation.y
+    zOr = odom.pose.pose.orientation.z
+    wOr = odom.pose.pose.orientation.w
+
+    (roll, pitch, yaw) = euler_from_quaternion([xOr, yOr, zOr, wOr])
+   
+
+    #angle = self.odom.pose.pose.orientation.z - vecutils.angle_between((1, 0), delta.tolist()[0])
+    bearingDiff = math.atan2(delta[0, 0], delta[0, 1])
+    angle = bearingDiff - yaw
+    print angle
+
+    #if(angle > 180):
+    #  angle = 360 - angle
+    #  clockwise = -1
+    #else:
+    #  clockwise = 1
+
+    turn_cmd = Twist()
+    nMov_cmd = Twist()
+    nMov_cmd.linear.x = np.linalg.norm(delta)
+    turn_cmd.angular.z = angle
+
+    #self.cmd_vel.publish(move_cmd)
+    self.cmd_vel.publish(turn_cmd)
+    rospy.sleep(1)
+    self.cmd_vel.publish(nMov_cmd)
+    rospy.sleep(1)
+
+    #goal = MoveBaseGoal()
+    #goal.target_pose.pose.position.x = self.boid.location[0, 0]
+    #goal.target_pose.pose.position.y = self.boid.location[0, 1]
+    #goal.target_pose.header.frame_id = self.robotName + 'move_it'
+    #goal.target_pose.header.stamp = rospy.Time.now()
+
+    #self.sac.wait_for_server()
+    #self.sac.send_goal(goal)
+    #self.sac.wait_for_result()
+    #print self.sac.get_result()
+
 
 
   def __init__(self, robotName):
@@ -68,6 +117,7 @@ class SwarmRobo():
 
     # Initiliaze
     rospy.init_node('swarmmember_' + self.robotName, anonymous=False)
+    self.sac = actionlib.SimpleActionClient('move_base', MoveBaseAction)
 
     # What to do on CTRL + C    
     rospy.on_shutdown(self.shutdown)
@@ -103,19 +153,7 @@ class SwarmRobo():
     # 5 Hz
     r = rospy.Rate(5);
 
-    self.patience = rospy.Timer(rospy.Duration(1), self.patience_call)
-    #self.pastSeqs = []
-
-    # Let's go forward at 0.2 m/s
-    move_cmd = Twist()
-    move_cmd.linear.x = 0.2
-    # By default angular.z is 0 so setting this isn't required
-
-    # Let's turn at 45 deg/s
-    turn_cmd = Twist()
-    turn_cmd.linear.x = 0
-    turn_cmd.angular.z = radians(45); #45 deg/s in radians/s
-
+    self.patience = rospy.Timer(rospy.Duration(2), self.patience_call)
 
     while not rospy.is_shutdown():
       msg = BoidMsg()
@@ -134,15 +172,6 @@ class SwarmRobo():
     self.cmd_vel.publish(Twist())
     rospy.sleep(1)
  
-
-def unit_vec(vector):
-  return vector / np.linalg.norm(vector)
-
-
-def angle_between(v1, v2):
-  v1_u = unit_vector(v1)
-  v2_u = unit_vector(v2)
-  return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
 
 
 if __name__ == '__main__':

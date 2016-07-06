@@ -155,6 +155,7 @@ include_directories(
    src/boidStart.py
    src/nRobo.py
    src/boid.py
+   src/vecutils.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
 
