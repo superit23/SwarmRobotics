@@ -14,21 +14,26 @@ neighborRadius = 10
 sepWeight = 0.5
 alignWeight = 0.6
 cohWeight = 0.8
+goalWeight = 1.5
+goalTolerance = 1
 
-rospy.set_param("/boids/maxSpeed", str(maxSpeed))
-rospy.set_param("/boids/maxForce", str(maxForce))
-rospy.set_param("/boids/desiredSep",  str(desiredSep))
-rospy.set_param("/boids/neighborRadius", str(neighborRadius))
-rospy.set_param("/boids/sepWeight", str(sepWeight))
-rospy.set_param("/boids/alignWeight", str(alignWeight))
-rospy.set_param("/boids/cohWeight", str(cohWeight))
+
+rospy.set_param("/swarmflock/params/maxSpeed", str(maxSpeed))
+rospy.set_param("/swarmflock/params/maxForce", str(maxForce))
+rospy.set_param("/swarmflock/params/desiredSep",  str(desiredSep))
+rospy.set_param("/swarmflock/params/neighborRadius", str(neighborRadius))
+rospy.set_param("/swarmflock/params/sepWeight", str(sepWeight))
+rospy.set_param("/swarmflock/params/alignWeight", str(alignWeight))
+rospy.set_param("/swarmflock/params/cohWeight", str(cohWeight))
+rospy.set_param("/swarmflock/params/goalWeight", str(goalWeight))
+rospy.set_param("/swarmflock/params/goalTolerance", str(goalTolerance))
 
 procs = []
 
 for i in range(1, len(sys.argv)):
   #os.system("./nRobo.py " + str(sys.argv[i]) + " " + str(location))
   print "Initializing " + sys.argv[i]
-  SwarmRobo(sys.argv[i], [(20, 20)])
+  SwarmRobo(sys.argv[i])
   #p = Process(target=SwarmRobo, args=(sys.argv[i],))
   #p.start()
   #procs.append(p)

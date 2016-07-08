@@ -8,7 +8,7 @@ import math
 from math import radians
 import sys
 from boid import Boid
-from swarmflock.msg import BoidMsg
+from swarmflock.msg import BoidMsg, Float32ArrayMsg
 import numpy as np
 import copy
 import vecutils
@@ -68,19 +68,14 @@ class SwarmRobo():
     if(len(self.goals) > self.currGoal):
       goalDelta = self.goals[self.currGoal] - oldLocation
 
-      if((goalDelta < 0.5).all()):
+      if((np.absolute(goalDelta) < self.goalTol).all()):
         rospy.loginfo("Reached goal {0!s}".format(self.goals[self.currGoal]))
         self.currGoal += 1
 
     # We need to recheck since we might've changed the goal
     if(len(self.goals) > self.currGoal):
-      goalDelta = self.goals[self.currGoal] - oldLocation
+      goalDelta = vecutils.limit((self.goals[self.currGoal] - oldLocation) * self.goalWeight, self.maxForce)
       delta  = vecutils.limit(delta + goalDelta, self.maxSpeed)
-      print delta
-      print goalDelta
-      print dMag
-    else:
-      rospy.loginfo("No goals left!")
 
     dMag = np.linalg.norm(delta)
 
@@ -129,34 +124,43 @@ class SwarmRobo():
     self.boid_pub.publish(msg) 
 
 
+  def goal_received(self, msg):
+    self.goals.append(msg.array)
 
-  def __init__(self, robotName, goals):
+
+  def __init__(self, robotName):
     self.robotName = robotName
     self.responses = []
-    self.goals = goals
+    self.goals = []
     self.currGoal = 0
 
     # Initiliaze
     rospy.init_node('swarmmember_' + self.robotName, anonymous=False)
     #self.sac = actionlib.SimpleActionClient('move_base', MoveBaseAction)
 
+
     # What to do on CTRL + C    
     rospy.on_shutdown(self.shutdown)
+
     
     # Setup communication channels
     self.cmd_vel  = rospy.Publisher('/' + self.robotName + '/cmd_vel_mux/input/navi', Twist, queue_size=10)
     self.odom_sub = rospy.Subscriber('/' + self.robotName + '/odom', Odometry, self.odom_received)
-    self.boid_pub = rospy.Publisher('/boid', BoidMsg, queue_size=10)        
-    self.boid_sub = rospy.Subscriber('/boid', BoidMsg, self.msg_received)
+    self.boid_pub = rospy.Publisher('/swarmflock/boids', BoidMsg, queue_size=10)        
+    self.boid_sub = rospy.Subscriber('/swarmflock/boids', BoidMsg, self.msg_received)
+    self.goal_sub = rospy.Subscriber('/swarmflock/goals', Float32ArrayMsg, self.goal_received)
+
 
     # Grab global parameters
-    self.maxSpeed    = float(rospy.get_param("/boids/maxSpeed"))
-    self.maxForce    = float(rospy.get_param("/boids/maxForce"))
-    self.desiredSep  = float(rospy.get_param("/boids/desiredSep"))
-    self.neighR      = float(rospy.get_param("/boids/neighborRadius"))
-    self.sepWeight   = float(rospy.get_param("/boids/sepWeight"))
-    self.alignWeight = float(rospy.get_param("/boids/alignWeight"))
-    self.cohWeight   = float(rospy.get_param("/boids/cohWeight"))
+    self.maxSpeed    = float(rospy.get_param("/swarmflock/params/maxSpeed"))
+    self.maxForce    = float(rospy.get_param("/swarmflock/params/maxForce"))
+    self.desiredSep  = float(rospy.get_param("/swarmflock/params/desiredSep"))
+    self.neighR      = float(rospy.get_param("/swarmflock/params/neighborRadius"))
+    self.sepWeight   = float(rospy.get_param("/swarmflock/params/sepWeight"))
+    self.alignWeight = float(rospy.get_param("/swarmflock/params/alignWeight"))
+    self.cohWeight   = float(rospy.get_param("/swarmflock/params/cohWeight"))
+    self.goalWeight  = float(rospy.get_param("/swarmflock/params/goalWeight"))
+    self.goalTol     = float(rospy.get_param("/swarmflock/params/goalTolerance"))
 
 
     # Grab current location from odometry

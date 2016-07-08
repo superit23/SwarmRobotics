@@ -49,6 +49,7 @@ add_message_files(
   FILES
 #   Message1.msg
 #   Message2.msg
+  Float32ArrayMsg.msg
   BoidMsg.msg
 )
 
