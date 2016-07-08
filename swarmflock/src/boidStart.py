@@ -4,10 +4,10 @@ import numpy as np
 import os
 import rospy
 import sys
-from nRobo import SwarmRobo
+from SwarmRobo import SwarmRobo
 
 
-maxSpeed = 0.65
+maxVelocity = 0.65
 maxForce = 0.24
 desiredSep = 3
 neighborRadius = 10
@@ -18,7 +18,7 @@ goalWeight = 1.5
 goalTolerance = 1
 
 
-rospy.set_param("/swarmflock/params/maxSpeed", str(maxSpeed))
+rospy.set_param("/swarmflock/params/maxVelocity", str(maxVelocity))
 rospy.set_param("/swarmflock/params/maxForce", str(maxForce))
 rospy.set_param("/swarmflock/params/desiredSep",  str(desiredSep))
 rospy.set_param("/swarmflock/params/neighborRadius", str(neighborRadius))

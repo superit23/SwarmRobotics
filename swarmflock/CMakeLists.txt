@@ -154,7 +154,7 @@ include_directories(
 ## in contrast to setup.py, you can choose the destination
  install(PROGRAMS
    src/boidStart.py
-   src/nRobo.py
+   src/SwarmRobo.py
    src/boid.py
    src/vecutils.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

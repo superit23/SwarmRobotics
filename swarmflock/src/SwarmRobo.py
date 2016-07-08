@@ -75,7 +75,7 @@ class SwarmRobo():
     # We need to recheck since we might've changed the goal
     if(len(self.goals) > self.currGoal):
       goalDelta = vecutils.limit((self.goals[self.currGoal] - oldLocation) * self.goalWeight, self.maxForce)
-      delta  = vecutils.limit(delta + goalDelta, self.maxSpeed)
+      delta  = vecutils.limit(delta + goalDelta, self.maxVelocity)
 
     dMag = np.linalg.norm(delta)
 
@@ -152,7 +152,7 @@ class SwarmRobo():
 
 
     # Grab global parameters
-    self.maxSpeed    = float(rospy.get_param("/swarmflock/params/maxSpeed"))
+    self.maxVelocity    = float(rospy.get_param("/swarmflock/params/maxVelocity"))
     self.maxForce    = float(rospy.get_param("/swarmflock/params/maxForce"))
     self.desiredSep  = float(rospy.get_param("/swarmflock/params/desiredSep"))
     self.neighR      = float(rospy.get_param("/swarmflock/params/neighborRadius"))
@@ -173,7 +173,7 @@ class SwarmRobo():
       location = np.random.uniform(-250, 250, size=(1,2))
 
     # Create Boid representation
-    self.boid = Boid(location, self.maxSpeed, self.maxForce, self.desiredSep, self.neighR, self.sepWeight, self.alignWeight, self.cohWeight)
+    self.boid = Boid(location, self.maxVelocity, self.maxForce, self.desiredSep, self.neighR, self.sepWeight, self.alignWeight, self.cohWeight)
 
     # 5 Hz
     r = rospy.Rate(5);
