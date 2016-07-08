@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import numpy as np
+import vecutils
 
 # Derived from harry.me/blog/2011/02/17/neat-algorithms-flocking/
 class Boid:
@@ -23,7 +24,7 @@ class Boid:
   def step(self, neighbors):
     acceleration = self.flock(neighbors)
     #self.velocity = np.minimum(self.velocity + acceleration, self.maxSpeed)
-    self.velocity = self.limit(self.velocity + acceleration, self.maxSpeed)
+    self.velocity = vecutils.limit(self.velocity + acceleration, self.maxSpeed)
     self.location = self.location + self.velocity
     return
 
@@ -74,7 +75,7 @@ class Boid:
 
       steer = desired - self.velocity
       #steer = np.minimum(steer, self.maxForce)
-      steer = self.limit(steer, self.maxForce)
+      steer = vecutils.limit(steer, self.maxForce)
 
     else:
       steer = np.zeros((1, 2))
@@ -98,7 +99,7 @@ class Boid:
       mean = mean / count
 
     #mean = np.minimum(mean, self.maxForce)
-    mean = self.limit(mean, self.maxForce)
+    mean = vecutils.limit(mean, self.maxForce)
     return mean
 
 
@@ -118,13 +119,5 @@ class Boid:
       mean = mean / count
 
     #return np.minimum(mean, self.maxForce)
-    return self.limit(mean, self.maxForce)
+    return vecutils.limit(mean, self.maxForce)
 
-
-  def limit(self, vec, max):
-    magnitude = np.linalg.norm(vec)
-
-    if magnitude > max:
-      return vec / magnitude * max
-    else:
-      return vec

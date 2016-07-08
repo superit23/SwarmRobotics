@@ -17,6 +17,7 @@ from tf.transformations import euler_from_quaternion
 import actionlib
 from move_base_msgs.msg import *
 
+
 class SwarmRobo():
 
   def odom_received(self, msg):
@@ -28,11 +29,9 @@ class SwarmRobo():
     # The first boolean expression makes sure we're not including ourselves.
     # The second boolean expression doesn't take a second message from that robot.
     # self.responses will clear when patience expires.
-    # [DEPRECATED] The third boolean expression makes sure we haven't just seen this message.
 
     if(msg.robotName != self.robotName and not
-       any(resp.robotName == msg.robotName for resp in self.responses)):# and not
-       #any(msg.header.seq == seq for seq in self.pastSeqs)):
+       any(resp.robotName == msg.robotName for resp in self.responses)):
       
       self.responses.append(msg)
 
@@ -45,7 +44,7 @@ class SwarmRobo():
 
     # Process information as boids
     for resp in self.responses:
-      print resp
+      #print resp
       nBoid = copy.deepcopy(self.boid)
       nBoid.location = resp.location
       nBoid.velocity = resp.velocity
@@ -54,8 +53,9 @@ class SwarmRobo():
     odom = self.odom
 
     self.boid.location = np.matrix([odom.pose.pose.position.x, odom.pose.pose.position.y])
-    #oldLocation = self.boid.location
+    oldLocation = self.boid.location
     self.boid.step(boids)
+
 
     #self.pastSeqs = self.pastSeqs[len(self.responses) - 1::]
     self.responses = []
@@ -63,9 +63,26 @@ class SwarmRobo():
     #angle = angle_between(location, self.boid.location)
     #delta = oldLocation - self.boid.location
     delta = self.boid.velocity
-    #move_cmd = Twist()
-    #move_cmd.linear.x = delta[0, 0]
-    #move_cmd.linear.y = delta[0, 1]
+
+    # If there is a current goal, factor it into our navigation.
+    if(len(self.goals) > self.currGoal):
+      goalDelta = self.goals[self.currGoal] - oldLocation
+
+      if((goalDelta < 0.5).all()):
+        rospy.loginfo("Reached goal {0!s}".format(self.goals[self.currGoal]))
+        self.currGoal += 1
+
+    # We need to recheck since we might've changed the goal
+    if(len(self.goals) > self.currGoal):
+      goalDelta = self.goals[self.currGoal] - oldLocation
+      delta  = vecutils.limit(delta + goalDelta, self.maxSpeed)
+      print delta
+      print goalDelta
+      print dMag
+    else:
+      rospy.loginfo("No goals left!")
+
+    dMag = np.linalg.norm(delta)
 
     # web.engr.oregonstate.edu/~kraftko/code/me456_hw2/lab2_KK.py
     xOr = odom.pose.pose.orientation.x
@@ -77,19 +94,13 @@ class SwarmRobo():
    
 
     #angle = self.odom.pose.pose.orientation.z - vecutils.angle_between((1, 0), delta.tolist()[0])
-    bearingDiff = math.atan2(delta[0, 0], delta[0, 1])
+    bearingDiff = math.atan2(delta[0, 1], delta[0, 0])
     angle = bearingDiff - yaw
-    print angle
-
-    #if(angle > 180):
-    #  angle = 360 - angle
-    #  clockwise = -1
-    #else:
-    #  clockwise = 1
 
     turn_cmd = Twist()
     nMov_cmd = Twist()
-    nMov_cmd.linear.x = np.linalg.norm(delta)
+
+    nMov_cmd.linear.x = dMag
     turn_cmd.angular.z = angle
 
     #self.cmd_vel.publish(move_cmd)
@@ -110,14 +121,24 @@ class SwarmRobo():
     #print self.sac.get_result()
 
 
+  def msgTime_call(self, event):
+    msg = BoidMsg()
+    msg.robotName = self.robotName
+    msg.location = self.boid.location.tolist()[0]
+    msg.velocity = self.boid.velocity.tolist()[0]
+    self.boid_pub.publish(msg) 
 
-  def __init__(self, robotName):
+
+
+  def __init__(self, robotName, goals):
     self.robotName = robotName
     self.responses = []
+    self.goals = goals
+    self.currGoal = 0
 
     # Initiliaze
     rospy.init_node('swarmmember_' + self.robotName, anonymous=False)
-    self.sac = actionlib.SimpleActionClient('move_base', MoveBaseAction)
+    #self.sac = actionlib.SimpleActionClient('move_base', MoveBaseAction)
 
     # What to do on CTRL + C    
     rospy.on_shutdown(self.shutdown)
@@ -154,15 +175,11 @@ class SwarmRobo():
     r = rospy.Rate(5);
 
     self.patience = rospy.Timer(rospy.Duration(2), self.patience_call)
+    self.msgTimer = rospy.Timer(rospy.Duration(0.4), self.msgTime_call)
 
-    while not rospy.is_shutdown():
-      msg = BoidMsg()
-      msg.robotName = self.robotName
-      msg.location = self.boid.location.tolist()[0]
-      msg.velocity = self.boid.velocity.tolist()[0]
-      self.boid_pub.publish(msg)
+    rospy.loginfo("Now spinning " + self.robotName)
+    rospy.spin()
 
-      r.sleep()
 
 
 
