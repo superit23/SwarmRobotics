@@ -12,9 +12,7 @@ from swarmflock.msg import BoidMsg, Float32ArrayMsg
 import numpy as np
 import copy
 import vecutils
-import tf
 from tf.transformations import euler_from_quaternion
-import actionlib
 from move_base_msgs.msg import *
 
 
@@ -44,7 +42,6 @@ class SwarmRobo():
 
     # Process information as boids
     for resp in self.responses:
-      #print resp
       nBoid = copy.deepcopy(self.boid)
       nBoid.location = resp.location
       nBoid.velocity = resp.velocity
@@ -57,13 +54,10 @@ class SwarmRobo():
     self.boid.step(boids)
 
 
-    #self.pastSeqs = self.pastSeqs[len(self.responses) - 1::]
     self.responses = []
 
-    #angle = angle_between(location, self.boid.location)
-    #delta = oldLocation - self.boid.location
     delta = self.boid.velocity
-
+ 
     # If there is a current goal, factor it into our navigation.
     if(len(self.goals) > self.currGoal):
       goalDelta = self.goals[self.currGoal] - oldLocation
@@ -72,10 +66,12 @@ class SwarmRobo():
         rospy.loginfo("Reached goal {0!s}".format(self.goals[self.currGoal]))
         self.currGoal += 1
 
+
     # We need to recheck since we might've changed the goal
     if(len(self.goals) > self.currGoal):
       goalDelta = vecutils.limit((self.goals[self.currGoal] - oldLocation) * self.goalWeight, self.maxForce)
       delta  = vecutils.limit(delta + goalDelta, self.maxVelocity)
+
 
     dMag = np.linalg.norm(delta)
 
@@ -88,7 +84,6 @@ class SwarmRobo():
     (roll, pitch, yaw) = euler_from_quaternion([xOr, yOr, zOr, wOr])
    
 
-    #angle = self.odom.pose.pose.orientation.z - vecutils.angle_between((1, 0), delta.tolist()[0])
     bearingDiff = math.atan2(delta[0, 1], delta[0, 0])
     angle = bearingDiff - yaw
 
@@ -98,22 +93,11 @@ class SwarmRobo():
     nMov_cmd.linear.x = dMag
     turn_cmd.angular.z = angle
 
-    #self.cmd_vel.publish(move_cmd)
     self.cmd_vel.publish(turn_cmd)
     rospy.sleep(1)
     self.cmd_vel.publish(nMov_cmd)
     rospy.sleep(1)
 
-    #goal = MoveBaseGoal()
-    #goal.target_pose.pose.position.x = self.boid.location[0, 0]
-    #goal.target_pose.pose.position.y = self.boid.location[0, 1]
-    #goal.target_pose.header.frame_id = self.robotName + 'move_it'
-    #goal.target_pose.header.stamp = rospy.Time.now()
-
-    #self.sac.wait_for_server()
-    #self.sac.send_goal(goal)
-    #self.sac.wait_for_result()
-    #print self.sac.get_result()
 
 
   def msgTime_call(self, event):
@@ -136,7 +120,6 @@ class SwarmRobo():
 
     # Initiliaze
     rospy.init_node('swarmmember_' + self.robotName, anonymous=False)
-    #self.sac = actionlib.SimpleActionClient('move_base', MoveBaseAction)
 
 
     # What to do on CTRL + C    
@@ -152,7 +135,7 @@ class SwarmRobo():
 
 
     # Grab global parameters
-    self.maxVelocity    = float(rospy.get_param("/swarmflock/params/maxVelocity"))
+    self.maxVelocity = float(rospy.get_param("/swarmflock/params/maxVelocity"))
     self.maxForce    = float(rospy.get_param("/swarmflock/params/maxForce"))
     self.desiredSep  = float(rospy.get_param("/swarmflock/params/desiredSep"))
     self.neighR      = float(rospy.get_param("/swarmflock/params/neighborRadius"))
@@ -171,6 +154,7 @@ class SwarmRobo():
     else:
       rospy.loginfo('No response from odometry; randomizing Boid position')
       location = np.random.uniform(-250, 250, size=(1,2))
+
 
     # Create Boid representation
     self.boid = Boid(location, self.maxVelocity, self.maxForce, self.desiredSep, self.neighR, self.sepWeight, self.alignWeight, self.cohWeight)

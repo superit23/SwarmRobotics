@@ -54,11 +54,12 @@ add_message_files(
 )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
+ add_service_files(
+   FILES
 #   Service1.srv
 #   Service2.srv
-# )
+   WiFiTrilat.srv
+ )
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -157,6 +158,8 @@ include_directories(
    src/SwarmRobo.py
    src/boid.py
    src/vecutils.py
+   src/wifiutils.py
+   src/WiFiTrilatSrv.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
 
