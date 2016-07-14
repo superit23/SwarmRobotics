@@ -3,21 +3,31 @@ import dbus
 from swarmflock.srv import *
 import wifiutils
 import hotspot
+import mrssi
+import sys
 
 class WiFiTrilatSrv:
 
   def handle_Trilat(self, req):
-    distance = wifiutils.calcDistance()
-    return WiFiTrilatResponse(30)
+    mRSSI = mrssi.MacRSSI("wlan0", req.mac_address, self.freq)
+    mRSSI.run()
+    rospy.sleep(1)
+
+    rssis = mRSSI.hist[:, 1]
+
+    distance = wifiutils.calcDistance(sum(rssis[rssis != -100]), self.freq)
+    return WiFiTrilatResponse(distance)
 
 
-  def __init__(self, robotName):
+  def __init__(self, interface, freq):
+
+    self.freq = freq
+    self.interface = interface
 
     # Start ROS integration
     rospy.init_node("wifitrilat_server")
-    self.service = rospy.Service("WiFiTrilat", WiFiTrilat, self.handle_Trilat)
+    self.service = rospy.Service("WiFiTrilat", WiFiTrilatRequest, self.handle_Trilat)
 
-    self.freq = 2412
     hotspot.main("start")
 
     rospy.on_shutdown(self.shutdown)    
@@ -56,4 +66,4 @@ class WiFiTrilatSrv:
 
 
 if __name__ == "__main__":
-  WiFiTrilatSrv("test")
+  WiFiTrilatSrv(sys.argv[1], sys.argv[2])
