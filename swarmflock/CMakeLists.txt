@@ -160,6 +160,10 @@ include_directories(
    src/vecutils.py
    src/wifiutils.py
    src/WiFiTrilatSrv.py
+   src/hotspot.py
+   src/mrssi.py
+   src/setup.sh
+   src/cli.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
 
