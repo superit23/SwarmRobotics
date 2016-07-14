@@ -1,4 +1,3 @@
-string robotName
-int64 b
+string mac_address
 ---
-int64 sum
+float distance
