@@ -28,7 +28,8 @@ class WiFiTrilatSrv:
 
     # Start ROS integration
     rospy.init_node("wifitrilat_server")
-    self.service = rospy.Service("WiFiTrilat", WiFiTrilat, self.handle_Trilat)
+    rospy.get_param("/robotName")
+    self.service = rospy.Service("/" + robotName + "WiFiTrilat", WiFiTrilat, self.handle_Trilat)
 
     if self.freq != 0:
       hotspot.main("start")
