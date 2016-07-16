@@ -1,0 +1,7 @@
+<launch>
+  <group ns="$(env HOSTNAME)">
+    <include file="$(find turtlebot_bringup)/launch/minimal.launch" />
+    <include file="$(find master_discovery_fkie)/launch/master_discovery.launch" />
+    <node name="master_sync_fkie" pkg="master_sync_fkie" type="master_sync" />
+  </group>
+</launch>

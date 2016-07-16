@@ -6,6 +6,7 @@ import wifiutils
 import hotspot
 import mrssi
 import sys
+import os
 
 class WiFiTrilatSrv:
 
@@ -25,11 +26,12 @@ class WiFiTrilatSrv:
 
     self.freq = freq
     self.interface = interface
+    robotName = os.getenv('HOSTNAME')
 
     # Start ROS integration
-    rospy.init_node("wifitrilat_server")
-    rospy.get_param("/robotName")
-    self.service = rospy.Service("/" + robotName + "WiFiTrilat", WiFiTrilat, self.handle_Trilat)
+    rospy.init_node(robotName + "_wifitrilat_server")
+    #robotName = rospy.get_param("/robot/name")
+    self.service = rospy.Service("/" + robotName + "/WiFiTrilat", WiFiTrilat, self.handle_Trilat)
 
     if self.freq != 0:
       hotspot.main("start")

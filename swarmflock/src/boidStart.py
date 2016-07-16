@@ -30,10 +30,9 @@ rospy.set_param("/swarmflock/params/goalTolerance", str(goalTolerance))
 
 procs = []
 
-for i in range(1, len(sys.argv)):
   #os.system("./nRobo.py " + str(sys.argv[i]) + " " + str(location))
-  print "Initializing " + sys.argv[i]
-  SwarmRobo(sys.argv[i])
+print "Initializing "
+SwarmRobo()
   #p = Process(target=SwarmRobo, args=(sys.argv[i],))
   #p.start()
   #procs.append(p)

@@ -14,7 +14,7 @@ import copy
 import vecutils
 from tf.transformations import euler_from_quaternion
 from move_base_msgs.msg import *
-
+import os
 
 class SwarmRobo():
 
@@ -46,6 +46,10 @@ class SwarmRobo():
       nBoid.location = resp.location
       nBoid.velocity = resp.velocity
       boids.append(nBoid)
+
+    if not hasattr(self, 'odom'): 
+      rospy.loginfo("Odometry not registered! Returning from patience call.")
+      return
 
     odom = self.odom
 
@@ -112,8 +116,10 @@ class SwarmRobo():
     self.goals.append(msg.array)
 
 
-  def __init__(self, robotName):
-    self.robotName = robotName
+  def __init__(self):
+    hostname = os.getenv('HOSTNAME')
+
+    self.robotName = hostname
     self.responses = []
     self.goals = []
     self.currGoal = 0

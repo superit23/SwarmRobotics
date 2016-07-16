@@ -1,4 +1,4 @@
 <launch>
   <node name="swarmflock" pkg="swarmflock" type="boidStart.py" required="true"></node>
-
+  <include file="$(find swarmflock)/apps/swarmflock/dependencies.launch" />
 </launch>
