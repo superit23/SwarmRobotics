@@ -5,4 +5,4 @@ pip install python-wifi
 
 apt-get install -y hostapd ros-indigo-multimaster-fkie
 
-iptables INPUT A -p tcp --dport 11311 -j ACCEPT
+iptables -A INPUT -p tcp --dport 11311 -j ACCEPT
