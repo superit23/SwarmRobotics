@@ -74,13 +74,13 @@ class MacRSSI():
 
     def run(self):
         try:
-            Wireless(self.interface).setFrequency(self.freq)
+            Wireless(self.interface).setFrequency("%.3f" % (float(self.freq)/1000))
         except IOError:
             print >>sys.stderr, traceback.format_exc()
             print >>sys.stderr, "meh"
             return
         self.hist = []
-        print >>sys.stderr, "looking for %s on %s chan: %s (%s)" % (self.mac, self.interface, chanmap[self.freq[0]+self.freq[2:5]], self.freq)
+        #print >>sys.stderr, "looking for %s on %s chan: %s (%s)" % (self.mac, self.interface, chanmap[self.freq[0]+self.freq[2:5]], self.freq)
         sniff(iface=self.interface, prn=self.handler, store=0)
 
     def siglevel(self, packet):
