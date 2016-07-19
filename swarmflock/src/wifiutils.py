@@ -5,7 +5,7 @@ import math
 def calcDistance(signalLevelInDb, freqInMHz):
   K = -27.55
   #SNR = -87
-  FSPL = (20 * math.log10(freqInMHz) + K + math.fabs(signalLevelInDb)) / 20
+  FSPL = ((-1 * K) - (20 * math.log10(freqInMHz)) + math.fabs(signalLevelInDb)) / 20.0
   meters = math.pow(10, FSPL)
 
   return meters
