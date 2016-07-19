@@ -51,6 +51,7 @@ add_message_files(
 #   Message2.msg
   Float32ArrayMsg.msg
   BoidMsg.msg
+  WiFiRSSIMsg.msg
 )
 
 ## Generate services in the 'srv' folder
