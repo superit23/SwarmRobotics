@@ -51,7 +51,6 @@ add_message_files(
 #   Message2.msg
   Float32ArrayMsg.msg
   BoidMsg.msg
-  WiFiRSSIMsg.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -165,7 +164,6 @@ include_directories(
    src/mrssi.py
    src/setup.sh
    src/cli.py
-   src/WiFiRSSIPub.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
 

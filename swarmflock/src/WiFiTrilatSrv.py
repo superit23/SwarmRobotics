@@ -1,72 +1,94 @@
 #!/usr/bin/python
 
 import rospy
+#from swarmflock.msg import WiFiRSSIMsg
 from swarmflock.srv import *
 import wifiutils
 import hotspot
-import mrssi
 import sys
-import os
+import os, time
+from scapy.all import sniff, Dot11
+from pythonwifi.iwlibs import Wireless, Iwrange
+from netaddr import OUI
+from itertools import groupby
 
 class WiFiTrilatSrv:
 
+  def handler(self, packet):
+    if packet.haslayer(Dot11):
+      # Check to make sure this is a management frame (type=0) and that
+      # the subtype is one of our management frame subtypes indicating a
+      # a wireless client
+      #if packet.addr2 and packet.addr2.lower() == self.mac:
+      if packet.addr2:
+        rssi = self.siglevel(packet)# if self.siglevel(packet)!=-256 else -100
+        self.msgs.append((packet.addr2.lower(), rssi))
+
+        #if packet.addr2.lower() == "7c:e9:d3:f5:c4:e5":
+        #  print "RECEIVED"
+        #rospy.spinOnce()
+
+
+
+  def patience_call(self, event):
+    self.distances = []
+    self.msgs.sort()
+    byMAC = groupby(self.msgs, lambda x: x[0])
+
+    for key, group in byMAC:
+      mac = key
+      rssis = [p[1] for p in group if p[1] > -230]
+
+      if len(rssis) == 0:
+        continue
+
+      avg = sum(rssis) / len(rssis)
+      self.distances.append((mac, wifiutils.calcDistance(avg, self.freq), time.time()))
+
+      #rssiMsg = WiFiRSSIMsg()
+      #rssiMsg.mac_address = mac
+      #rssiMsg.distance = wifiutils.calcDistance(avg, self.freq)
+      #self.rssiPub.publish(rssiMsg)
+
+
+    self.msgs = []
+
+
   def handle_Trilat(self, req):
-    print "Interface: " + self.interface + "\nMAC Address: " + req.mac_address + "\nFrequency: " + str(self.freq)
-    mRSSI = mrssi.MacRSSI(self.interface, req.mac_address, self.freq)
-    mRSSI.run()
-    rospy.sleep(1)
+    distances = [x for x in self.distances if x[0] == req.mac_address]
 
-    #rssis = mRSSI.hist[:, 1]
-    rssis = [x[0] for x in mRSSI.hist]
-    #relevant = rssis[rssis != -100]
-    relevant = [x for x in rssis if x != -100]
-
-    if len(rssis) == 0:
-      print "No packets received from " + req.mac_address
-      return WiFiTrilatResponse(-1)
-    elif len(relevant) == 0:
-      print "Packets received from " + req.mac_address + ", but nothing 'relevant'"
-      return WiFiTrilatResponse(-2)
-
-    distance = wifiutils.calcDistance(sum(relevant) / len(relevant), self.freq)
-    return WiFiTrilatResponse(distance)
+    if len(distances) > 0:
+      return WiFiTrilatResponse(distances[0][1], distances[0][2])
+    else:
+      return WiFiTrilatResponse(-1, -1)
 
 
-  def __init__(self, interface, startAP=False, freq=2412):
+  def __init__(self, interface, freq):
+    self.robotName = os.getenv('HOSTNAME')
 
-    self.freq = freq
+    rospy.init_node(self.robotName + "_wifiRSSIPub")
+
+    #self.rssiPub = rospy.Publisher('/' + self.robotName + '/WiFiRSSI', WiFiRSSIMsg, queue_size=10)
+    self.service = rospy.Service("/" + self.robotName + "/WiFiTrilat", WiFiTrilat, self.handle_Trilat)
+
     self.interface = interface
-    self.startAP = startAP
-    robotName = os.getenv('HOSTNAME')
+    #self.mac = mac.lower()
+    self.freq = int(freq)
 
-    # Start ROS integration
-    rospy.init_node(robotName + "_wifitrilat_server")
-    #robotName = rospy.get_param("/robot/name")
-    self.service = rospy.Service("/" + robotName + "/WiFiTrilat", WiFiTrilat, self.handle_Trilat)
+    self.msgs = []
+    self.distances = []
 
-    if self.startAP:
-      hotspot.main("start")
+    self.wifi = Wireless(self.interface).setFrequency("%.3f" % (float(self.freq) / 1000))
 
-    rospy.on_shutdown(self.shutdown)    
+    self.patience = rospy.Timer(rospy.Duration(2), self.patience_call)
 
-    # [DEPRECATED] This will create the ad-hoc network
-    # https://gist.github.com/meeuw/5765413
-
+    sniff(iface=self.interface, prn=self.handler, store=0)
     rospy.spin()
 
 
-  def shutdown(self):
-
-    if self.startAP:
-      hotspot.main("stop")
+  def siglevel(self, packet):
+    return -(256-ord(packet.notdecoded[-4:-3]))
 
 
 if __name__ == "__main__":
-
-  startAP = False
-
-  if len(sys.argv) > 3:
-    startAP = sys.argv[3]
-
-
-  WiFiTrilatSrv(sys.argv[1], startAP, sys.argv[2])
+  WiFiTrilatSrv(sys.argv[1], sys.argv[2])
