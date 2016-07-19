@@ -4,13 +4,14 @@ import rospy
 #from swarmflock.msg import WiFiRSSIMsg
 from swarmflock.srv import *
 import wifiutils
-import hotspot
+#import hotspot
 import sys
-import os, time
+import os, time, math
 from scapy.all import sniff, Dot11
 from pythonwifi.iwlibs import Wireless, Iwrange
 from netaddr import OUI
 from itertools import groupby
+from operator import itemgetter
 
 class WiFiTrilatSrv:
 
@@ -31,7 +32,6 @@ class WiFiTrilatSrv:
 
 
   def patience_call(self, event):
-    self.distances = []
     self.msgs.sort()
     byMAC = groupby(self.msgs, lambda x: x[0])
 
@@ -54,18 +54,27 @@ class WiFiTrilatSrv:
     self.msgs = []
 
 
-  def handle_Trilat(self, req):
-    distances = [x for x in self.distances if x[0] == req.mac_address]
+  def distPurge(self, event):
+    rospy.loginfo("Purging distances. Currently have " % len(self.distances))
+    self.distances = [x for x in self.distances if time.time() + self.tolerance > x[2]]
+    self.distances = sorted(self.distances, key=itemgetter(2))
+    rospy.loginfo("Distances purged! Now have " % len(self.distances))
 
-    if len(distances) > 0:
-      return WiFiTrilatResponse(distances[0][1], distances[0][2])
+
+  def handle_Trilat(self, req):
+    distances = [x for x in self.distances if x[0] == req.mac_address and math.fabs(req.time - x[2]) <= req.tolerance]
+    numElem = len(distances)
+
+    if numElem > 0:
+      return WiFiTrilatResponse(distances[numElem - 1][1], distances[numElem - 1][2])
     else:
       return WiFiTrilatResponse(-1, -1)
 
 
+
   def __init__(self, interface, freq):
     self.robotName = os.getenv('HOSTNAME')
-
+    self.tolerance = 10
     rospy.init_node(self.robotName + "_wifiRSSIPub")
 
     #self.rssiPub = rospy.Publisher('/' + self.robotName + '/WiFiRSSI', WiFiRSSIMsg, queue_size=10)
@@ -81,6 +90,7 @@ class WiFiTrilatSrv:
     self.wifi = Wireless(self.interface).setFrequency("%.3f" % (float(self.freq) / 1000))
 
     self.patience = rospy.Timer(rospy.Duration(2), self.patience_call)
+    self.purge = rospy.Timer(rospy.Duration(2), self.distPurge)
 
     sniff(iface=self.interface, prn=self.handler, store=0)
     rospy.spin()
