@@ -28,7 +28,12 @@ class WiFiTrilatClient:
     return mac
 
 
+  def getDistances(self, mac, servers):
+    services = [rospy.ServiceProxy(service, WiFiTrilat) for service in servers]
+    return [service(mac) for service in services]
+
+
+
   def trilaterate(self, mac, servers):
-    services = [rospy.ServiceProxy(service, WiFiTrilat) for service in servers[:3]]
-    responses = [service(mac) for service in services]
+    responses = getDistances(mac, servers[:3])
     return wifiutils.trilaterate([responses[0].x, responses[0].y], responses[0].distance, [responses[1].x, responses[1].y], responses[1].distance), [responses[2].x, responses[2].y], responses[2].distance))
