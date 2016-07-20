@@ -30,17 +30,17 @@ def execute(command='', errorstring='', wait=True, shellexec=False, ags=None):
         if (shellexec):
             p=subprocess.Popen(command, shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
             #print 'verb: ' + str(arguments.verbose)
-            if arguments.verbose: print 'command: ' + command
+            #if arguments.verbose: print 'command: ' + command
         else:
             p=subprocess.Popen(args=ags)
-            if arguments.verbose: print 'command: ' + ags[0]
+            #if arguments.verbose: print 'command: ' + ags[0]
 			
         if wait:
             p.wait()
             result=get_stdout(p)
             return result
         else:
-            if arguments.verbose: print 'not waiting'
+            #if arguments.verbose: print 'not waiting'
             return p
     except subprocess.CalledProcessError as e:
         print 'error occured:' + errorstring

@@ -12,6 +12,8 @@ from pythonwifi.iwlibs import Wireless, Iwrange
 from netaddr import OUI
 from itertools import groupby
 from operator import itemgetter
+from WiFiTrilatClient import WiFiTrilatClient
+
 
 class WiFiTrilatSrv:
 
@@ -58,21 +60,25 @@ class WiFiTrilatSrv:
     rospy.loginfo("Distances purged! Now have " + str(len(self.distances)))
 
 
+
   def handle_Trilat(self, req):
     distances = [x for x in self.distances if x[0] == req.mac_address and math.fabs(req.time - x[2]) <= req.tolerance]
     numElem = len(distances)
 
     if numElem > 0:
-      return WiFiTrilatResponse(distances[numElem - 1][1], distances[numElem - 1][2])
+      return WiFiTrilatResponse(distances[numElem - 1][1], distances[numElem - 1][2], self.x, self.y)
     else:
-      return WiFiTrilatResponse(-1, -1)
+      return WiFiTrilatResponse(-1, -1, self.x, self.y)
 
 
 
   def __init__(self, interface, freq):
     self.robotName = os.getenv('HOSTNAME')
     self.tolerance = 10
-    rospy.init_node(self.robotName + "_wifiRSSIPub")
+    self.x = 0
+    self.y = 0
+
+    rospy.init_node(self.robotName + "_wifitrilat_server")
 
     #self.rssiPub = rospy.Publisher('/' + self.robotName + '/WiFiRSSI', WiFiRSSIMsg, queue_size=10)
     self.service = rospy.Service("/" + self.robotName + "/WiFiTrilat", WiFiTrilat, self.handle_Trilat)

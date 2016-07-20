@@ -13,6 +13,10 @@ def calcDistance(signalLevelInDb, freqInMHz):
 
 # stackoverflow.com/questions/9747227/2d-trilateration
 def trilaterate(p1, r1, p2, r2, p3, r3):
+  p1 = np.array(p1)
+  p2 = np.array(p2)
+  p3 = np.array(p3)
+
   p21Diff = p2 - p1
   p31Diff = p3 - p1
   d = np.linalg.norm(p21Diff)

@@ -4,3 +4,5 @@ float32 tolerance
 ---
 float32 distance
 float32 time
+float32 x
+float32 y
