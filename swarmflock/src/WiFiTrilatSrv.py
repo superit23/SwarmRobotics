@@ -45,20 +45,17 @@ class WiFiTrilatSrv:
       avg = sum(rssis) / len(rssis)
       self.distances.append((mac, wifiutils.calcDistance(avg, self.freq), time.time()))
 
-      #rssiMsg = WiFiRSSIMsg()
-      #rssiMsg.mac_address = mac
-      #rssiMsg.distance = wifiutils.calcDistance(avg, self.freq)
-      #self.rssiPub.publish(rssiMsg)
-
 
     self.msgs = []
 
 
   def distPurge(self, event):
-    rospy.loginfo("Purging distances. Currently have " % len(self.distances))
-    self.distances = [x for x in self.distances if time.time() + self.tolerance > x[2]]
+    rospy.loginfo("Purging distances. Currently have " + str(len(self.distances)))
+
+    now = time.time()
+    self.distances = [x for x in self.distances if x[2] + self.tolerance > now]
     self.distances = sorted(self.distances, key=itemgetter(2))
-    rospy.loginfo("Distances purged! Now have " % len(self.distances))
+    rospy.loginfo("Distances purged! Now have " + str(len(self.distances)))
 
 
   def handle_Trilat(self, req):

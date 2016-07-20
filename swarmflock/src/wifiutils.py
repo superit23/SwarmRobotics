@@ -29,6 +29,19 @@ def trilaterate(p1, r1, p2, r2, p3, r3):
   return [x, y]
 
 
+
+def calcFrameOfRef(d12, d23, d13):
+  p1 = [0, 0]
+  p2 = [d12, 0]
+
+  x = d13 * math.sin(math.atan(float(d23) / d13))
+  y = (d23 ** 2 - x ** 2) ** (1/2.0)
+
+  p3 = [x, y]
+  return p1, p2, p3
+
+
+
 def test():
   p1 = np.array([0,0])
   p2 = np.array([2,0])
