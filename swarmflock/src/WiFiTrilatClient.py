@@ -1,6 +1,6 @@
 #!/usr/bin/python
 import cli, os
-import socket, re
+import socket, re, time
 import rospy
 from swarmflock.srv import *
 import wifiutils
@@ -30,7 +30,7 @@ class WiFiTrilatClient:
 
   def getDistances(self, mac, servers):
     services = [rospy.ServiceProxy(service, WiFiTrilat) for service in servers]
-    return [service(mac) for service in services]
+    return [service(mac, time.time(), 50) for service in services]
 
 
 

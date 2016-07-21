@@ -85,9 +85,13 @@ class WiFiTrilatSrv:
 
     # This will call the other servers' WiFiTrilatServices. To do this, we enter our own MAC address,
     # then take two servers that are NOT ours.
-    responses = self.client.getDistances(mac, otherServers)
+    responses = self.client.getDistances(mac, servers)
     #goodServers = [x.srv_name for x in responses if x.distance != -1]
-    responses = [x for x in responses if x.distance != -1]
+    goodResponses = [x for x in responses if x.distance != -1]
+
+    for x in responses:
+      print x.srv_name
+      print x.distance
     goodServers = sorted([x.srv_name for x in responses])
 
     #serverNames = sorted([s[1:s.find('/WiFi')] for s in servers])
@@ -95,10 +99,10 @@ class WiFiTrilatSrv:
 
     # Next we need to find the distance between the two other servers
     otherServerNames = [s[1:s.find('/WiFi')] for s in goodServers]
-    repsonses.append(self.client.getDistances(self.client.IPToMAC(self.client.hostToIP(otherServerNames[0])), goodServers[1]))
+    goodResponses.append(self.client.getDistances(self.client.IPtoMAC(self.client.hostToIP(otherServerNames[0])), goodServers[1]))
 
     # We take our relative position based on alphabetical order.
-    [self.x, self.y] = wifiutils.calcFrameOfRef(responses[0].distance, responses[2].distance, responses[1].distance)[index]
+    [self.x, self.y] = wifiutils.calcFrameOfRef(goodResponses[0].distance, goodResponses[2].distance, goodResponses[1].distance)[index]
 
 
 
