@@ -131,9 +131,9 @@ class SwarmRobo():
     # Setup communication channels
     self.cmd_vel  = rospy.Publisher('/' + self.robotName + '/cmd_vel_mux/input/navi', Twist, queue_size=10)
     self.odom_sub = rospy.Subscriber('/' + self.robotName + '/odom', Odometry, self.odom_received)
-    self.boid_pub = rospy.Publisher('/swarmflock/boids', BoidMsg, queue_size=10)        
-    self.boid_sub = rospy.Subscriber('/swarmflock/boids', BoidMsg, self.msg_received)
-    self.goal_sub = rospy.Subscriber('/swarmflock/goals', Float32ArrayMsg, self.goal_received)
+    self.boid_pub = rospy.Publisher('/swarmflock1/boids', BoidMsg, queue_size=10)        
+    self.boid_sub = rospy.Subscriber('/swarmflock2/boids', BoidMsg, self.msg_received)
+    self.goal_sub = rospy.Subscriber('/swarmflock3/goals', Float32ArrayMsg, self.goal_received)
 
 
     # Grab global parameters

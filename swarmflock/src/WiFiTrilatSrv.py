@@ -65,9 +65,9 @@ class WiFiTrilatSrv:
     numElem = len(distances)
 
     if numElem > 0:
-      return WiFiTrilatResponse(distances[numElem - 1][1], distances[numElem - 1][2], self.x, self.y)
+      return WiFiTrilatResponse(self.robotName, distances[numElem - 1][1], distances[numElem - 1][2], self.x, self.y)
     else:
-      return WiFiTrilatResponse(-1, -1, self.x, self.y)
+      return WiFiTrilatResponse(self.robotName, -1, -1, self.x, self.y)
 
 
 
@@ -76,18 +76,26 @@ class WiFiTrilatSrv:
     mac = get_if_hwaddr(self.interface)
     servers = self.client.discover()
 
-    otherServers = [x for x in servers if x.find(self.robotName) == -1][:2]
+    while(len(servers) < 3):
+      rospy.loginfo("Found only " + str(len(servers)) + " servers!")
+      rospy.sleep(1)
+      servers = self.client.discover()
+
+    otherServers = [x for x in servers if x.find(self.robotName) == -1]
 
     # This will call the other servers' WiFiTrilatServices. To do this, we enter our own MAC address,
     # then take two servers that are NOT ours.
     responses = self.client.getDistances(mac, otherServers)
+    #goodServers = [x.srv_name for x in responses if x.distance != -1]
+    responses = [x for x in responses if x.distance != -1]
+    goodServers = sorted([x.srv_name for x in responses])
 
-    serverNames = sorted([s[1:s.find('/WiFi')] for s in servers])
-    index = serverNames.index(self.robotName)
+    #serverNames = sorted([s[1:s.find('/WiFi')] for s in servers])
+    index = goodServers.index(self.robotName)
 
     # Next we need to find the distance between the two other servers
-    otherServerNames = [s[1:s.find('/WiFi')] for s in otherServers]
-    repsonses.append(self.client.getDistances(self.client.IPToMAC(self.client.hostToIP(otherServerNames[0])), otherServers[1]))
+    otherServerNames = [s[1:s.find('/WiFi')] for s in goodServers]
+    repsonses.append(self.client.getDistances(self.client.IPToMAC(self.client.hostToIP(otherServerNames[0])), goodServers[1]))
 
     # We take our relative position based on alphabetical order.
     [self.x, self.y] = wifiutils.calcFrameOfRef(responses[0].distance, responses[2].distance, responses[1].distance)[index]

@@ -164,6 +164,7 @@ include_directories(
    src/mrssi.py
    src/setup.sh
    src/cli.py
+   src/WiFiTrilatClient.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
 

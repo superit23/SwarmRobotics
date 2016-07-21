@@ -9,7 +9,7 @@ class WiFiTrilatClient:
 
   def __init__(self):
     self.robotName = os.getenv('HOSTNAME') 
-    rospy.init_node(self.robotName + '_wifitrilat_client')
+    #rospy.init_node(self.robotName + '_wifitrilat_client')
     return
 
 
@@ -36,4 +36,4 @@ class WiFiTrilatClient:
 
   def trilaterate(self, mac, servers):
     responses = getDistances(mac, servers[:3])
-    return wifiutils.trilaterate([responses[0].x, responses[0].y], responses[0].distance, [responses[1].x, responses[1].y], responses[1].distance), [responses[2].x, responses[2].y], responses[2].distance))
+    return wifiutils.trilaterate([responses[0].x, responses[0].y], responses[0].distance, [responses[1].x, responses[1].y], responses[1].distance, [responses[2].x, responses[2].y], responses[2].distance)
