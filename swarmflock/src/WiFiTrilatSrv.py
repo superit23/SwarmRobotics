@@ -70,6 +70,7 @@ class WiFiTrilatSrv:
       return WiFiTrilatResponse(-1, -1, self.x, self.y)
 
 
+
   # This function will attempt to find this server's position relative to the other servers.
   def findSelfPos(self, event):
     mac = get_if_hwaddr(self.interface)

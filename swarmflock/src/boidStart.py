@@ -9,7 +9,7 @@ from SwarmRobo import SwarmRobo
 
 maxVelocity = 0.65
 maxForce = 0.24
-desiredSep = 3
+desiredSep = 1.5
 neighborRadius = 10
 sepWeight = 0.5
 alignWeight = 0.6

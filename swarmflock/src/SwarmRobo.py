@@ -153,7 +153,7 @@ class SwarmRobo():
 
 
     # Grab current location from odometry
-    rospy.sleep(1)
+    rospy.sleep(4)
 
     if(hasattr(self, 'odom')):
       location = np.matrix([self.odom.pose.pose.position.x, self.odom.pose.pose.position.y])
@@ -187,7 +187,7 @@ class SwarmRobo():
 
 if __name__ == '__main__':
   try:
-    SwarmRobo(sys.argv[1])
+    SwarmRobo()
   except rospy.exceptions.ROSInterruptException as ex:
     rospy.loginfo("Node terminated.")
 
