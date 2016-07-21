@@ -19,6 +19,7 @@ def trilaterate(p1, r1, p2, r2, p3, r3):
 
   p21Diff = p2 - p1
   p31Diff = p3 - p1
+
   d = np.linalg.norm(p21Diff)
   ex = p21Diff / d
   i = np.dot(ex, p31Diff)
@@ -38,10 +39,16 @@ def calcFrameOfRef(d12, d23, d13):
   p1 = [0, 0]
   p2 = [d12, 0]
 
-  x = d13 * math.sin(math.atan(float(d23) / d13))
-  y = (d23 ** 2 - x ** 2) ** (1/2.0)
+  #x = d13 * math.sin(math.atan(float(d23) / d13))
+  #y = (d23 ** 2 - x ** 2) ** (1/2.0)
+  x2 = float(d12)
+  b = float(d23)
+  c = float(d13)
 
-  p3 = [x, y]
+  x3 = (-1 * b ** 2 + c ** 2 + x2 ** 2) / (2 * x2)
+  y3 = math.sqrt(b ** 2 - (x2 -x3) ** 2)
+
+  p3 = [x3, y3]
   return p1, p2, p3
 
 
@@ -59,3 +66,7 @@ def test():
 
   print tx
   return trilaterate(p1, r1, p2, r2, p3, r3)
+
+
+def testFrame():
+  print calcFrameOfRef(3, 4, 5)

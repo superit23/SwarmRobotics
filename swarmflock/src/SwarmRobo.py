@@ -4,17 +4,13 @@
 import rospy
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
-import math
-from math import radians
-import sys
-from boid import Boid
 from swarmflock.msg import BoidMsg, Float32ArrayMsg
+from math import radians
+from boid import Boid
 import numpy as np
-import copy
-import vecutils
+import copy, vecutils, math, sys, os
 from tf.transformations import euler_from_quaternion
-from move_base_msgs.msg import *
-import os
+
 
 class SwarmRobo():
 

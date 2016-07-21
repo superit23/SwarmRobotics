@@ -125,6 +125,7 @@ class WiFiTrilatSrv:
     else:
       self.discoverTimer = rospy.Timer(rospy.Duration(2), self.findSelfPos)
 
+
     sniff(iface=self.interface, prn=self.handler, store=0)
     rospy.spin()
 
