@@ -7,12 +7,13 @@ import wifiutils
 #import hotspot
 import sys
 import os, time, math
-from scapy.all import sniff, Dot11, get_if_hwaddr
+from scapy.all import sniff, Dot11, get_if_hwaddr, send, IP, ICMP
 from pythonwifi.iwlibs import Wireless, Iwrange
 from netaddr import OUI
 from itertools import groupby
 from operator import itemgetter
 from WiFiTrilatClient import WiFiTrilatClient
+
 
 class WiFiTrilatSrv:
 
@@ -130,7 +131,7 @@ class WiFiTrilatSrv:
 
     self.patience = rospy.Timer(rospy.Duration(2), self.patience_call)
     self.purge = rospy.Timer(rospy.Duration(2), self.distPurge)
-
+    self.heartbeat = rospy.Timer(rospy.Duration(1), self.heartbeat_call)
 
     if discoverOnce:
       self.findSelfPos(None)
@@ -140,6 +141,14 @@ class WiFiTrilatSrv:
 
     sniff(iface=self.interface, prn=self.handler, store=0)
     rospy.spin()
+
+
+
+
+  def heartbeat(self):
+    # Send a packet to every WiFiTrilat server.
+    for host in [s[1:s.find('/WiFi')] for s in self.client.discover()]:
+      send(IP(dst=host)/ICMP(), iface=self.interface)
 
 
 
