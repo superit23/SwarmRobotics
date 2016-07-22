@@ -5,6 +5,7 @@ import rospy
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from swarmflock.msg import BoidMsg, Float32ArrayMsg
+from swarmflock.srv import NeighborDiscovery, NeighborDiscoveryResponse, NeighborDiscoveryRequest
 from math import radians
 from boid import Boid
 import numpy as np
@@ -36,9 +37,15 @@ class SwarmRobo():
   # and direct the bot.
   def patience_call(self, event):
     boids = []
+    self.neighbors = []
 
     # Process information as boids
     for resp in self.responses:
+      d = np.linalg.norm(self.boid.location - resp.location)
+
+      if d > 0 and d < self.boid.neighR:
+        self.neighbors.append(resp)
+
       nBoid = copy.deepcopy(self.boid)
       nBoid.location = resp.location
       nBoid.velocity = resp.velocity
@@ -140,6 +147,9 @@ class SwarmRobo():
     # What to do on CTRL + C    
     rospy.on_shutdown(self.shutdown)
 
+
+    self.neighborDiscovery = rospy.Service('/' + self.robotName + '/neighbor_discovery', NeighborDiscovery, self.handle_nd)
+
     
     # Setup communication channels
     self.cmd_vel  = rospy.Publisher('/' + self.robotName + '/cmd_vel_mux/input/navi', Twist, queue_size=10)
@@ -191,6 +201,22 @@ class SwarmRobo():
     rospy.loginfo("Stopping member " + self.robotName)
     self.cmd_vel.publish(Twist())
     rospy.sleep(1)
+
+
+  def handle_nd(self, req):
+    inNeighborhood = req.robotName in [neighbor.robotName for neighbor in self.neighbors]
+
+    resp = NeighborDiscoveryResponse()
+    resp.inNeighborhood = inNeighborhood
+
+    msg = BoidMsg()
+    msg.robotName = self.robotName
+    msg.location = self.boid.location.tolist()[0]
+    msg.velocity = self.boid.velocity.tolist()[0]
+
+    resp.boid = msg
+
+    return resp
  
 
 

@@ -59,6 +59,7 @@ add_message_files(
 #   Service1.srv
 #   Service2.srv
    WiFiTrilat.srv
+   NeighborDiscovery.srv
  )
 
 ## Generate actions in the 'action' folder
