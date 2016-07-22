@@ -86,17 +86,21 @@ class WiFiTrilatSrv:
 
     # This will call the other servers' WiFiTrilatServices. To do this, we enter our own MAC address,
     # then take two servers that are NOT ours.
-    responses = self.client.getDistances(mac, servers)
+    responses = self.client.getDistances(mac, otherServers)
     #goodServers = [x.srv_name for x in responses if x.distance != -1]
     goodResponses = [x for x in responses if x.distance != -1]
 
     for x in responses:
       print x.srv_name
       print x.distance
-    goodServers = sorted([x.srv_name for x in responses])
+    goodServers = sorted([x.srv_name for x in goodResponses])
 
     for x in goodServers:
       print x
+
+    if len(goodServers) < 2:
+      rospy.loginfo("Not enough servers!")
+      return
 
     #serverNames = sorted([s[1:s.find('/WiFi')] for s in servers])
     index = goodServers.index(self.robotName)
@@ -104,6 +108,7 @@ class WiFiTrilatSrv:
     # Next we need to find the distance between the two other servers
 
     print "Host 0 is " + goodServers[0]
+    print "Host 1 is " + goodServers[1]
     goodResponses.append(self.client.getDistances(self.client.IPtoMAC(self.client.hostToIP(goodServers[0])), goodServers[1]))
 
     # We take our relative position based on alphabetical order.

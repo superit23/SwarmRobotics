@@ -29,8 +29,16 @@ class WiFiTrilatClient:
 
 
   def getDistances(self, mac, servers):
+    for service in servers:
+      print service
+
     services = [rospy.ServiceProxy(service, WiFiTrilat) for service in servers]
-    return [service(mac, time.time(), 10) for service in services]
+
+    if len(service) > 1:
+      return [service(mac, time.time(), 10) for service in services]
+    else:
+      return services(mac, time.time(), 10)
+
 
 
 
