@@ -5,7 +5,7 @@ import rospy
 from swarmflock.srv import *
 import wifiutils
 #import hotspot
-import sys
+import sys, cli
 import os, time, math
 from scapy.all import sniff, Dot11, get_if_hwaddr, send, IP, ICMP
 from pythonwifi.iwlibs import Wireless, Iwrange
@@ -145,12 +145,21 @@ class WiFiTrilatSrv:
 
 
 
-  def heartbeat(self):
+  def heartbeat_call(self, event):
     # Send a packet to every WiFiTrilat server.
     for host in [s[1:s.find('/WiFi')] for s in self.client.discover()]:
-      send(IP(dst=host)/ICMP(), iface=self.interface)
-
-
+      try:
+        send(IP(dst=host)/ICMP(), iface=self.interface)
+      except OSError as e:
+        rospy.loginfo(str(e))
+        rospy.loginfo("Attempting to manually connect...")
+        essid = raw_input("Enter ESSID: ")
+        psswd = raw_input("Enter network password: ")
+        cli.execute_shell("wpa_supplicant -B -i %s -c <(wpa_passphrase %s \"%s\")" % (self.interface, essid, psswd))
+        ip = raw_input("Enter IP Address: ")
+        nm = raw_input("Enter netmask: ")
+        cli.execute_shell("ifconfig %s %s netmask %s" % (self.interface, ip, nm))
+        #cli.execute_shell("dhclient %s" % self.interface)
 
   def siglevel(self, packet):
     return -(256-ord(packet.notdecoded[-4:-3]))
