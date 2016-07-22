@@ -4,8 +4,8 @@ import rospy
 import numpy as np
 import math
 import time
-from geometry_msgs.msg import Twist
-from WiFiTrilatClient import WiFiTrilatCient
+from swarmflock.msg import BoidMsg
+from WiFiTrilatClient import WiFiTrilatClient
 
 class DetectionAlgo:
 
@@ -16,8 +16,9 @@ class DetectionAlgo:
     self.lastMsg = Twist()
     self.suspect = suspect
 
-    self.odomSub = rospy.Subscriber('/' + self.suspect + '/odom', Twist, self.handle_msg)
-
+    self.boidSub = rospy.Subscriber('/' + self.suspect + '/swarmflock/boids', BoidMsg, self.handle_msg)
+    self.client = WiFiTrilatClient()
+    self.suspectMAC = self.client.hostToIP(self.client.IPtoMAC(self.suspect))
 
 
   def handle_msg(self, msg):
@@ -26,9 +27,9 @@ class DetectionAlgo:
 
 
   def run(self, event):
-    pos = self.lastMsg.position.position
-    broadcastedPos = np.array([pos.x, pos.y])
-
+    broadcastedPos = np.array(self.lastMsg.location)
+    suspectPos = np.array(self.client.trilaterate(self.suspectMAC, self.client.discover()))
+    shouldBePos = # Neighbor discovery algorithm
 
     suspicious = np.abs(suspectPos - broadcastedPos) > self.posThreshold
     suspicious = np.abs(suspectPos - shouldBePos) > self.posThreshold or suspicious
