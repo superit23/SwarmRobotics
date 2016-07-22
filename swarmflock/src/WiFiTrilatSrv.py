@@ -95,12 +95,16 @@ class WiFiTrilatSrv:
       print x.distance
     goodServers = sorted([x.srv_name for x in responses])
 
+    for x in goodServers:
+      print x
+
     #serverNames = sorted([s[1:s.find('/WiFi')] for s in servers])
     index = goodServers.index(self.robotName)
 
     # Next we need to find the distance between the two other servers
-    otherServerNames = [s[1:s.find('/WiFi')] for s in goodServers]
-    goodResponses.append(self.client.getDistances(self.client.IPtoMAC(self.client.hostToIP(otherServerNames[0])), goodServers[1]))
+
+    print "Host 0 is " + goodServers[0]
+    goodResponses.append(self.client.getDistances(self.client.IPtoMAC(self.client.hostToIP(goodServers[0])), goodServers[1]))
 
     # We take our relative position based on alphabetical order.
     [self.x, self.y] = wifiutils.calcFrameOfRef(goodResponses[0].distance, goodResponses[2].distance, goodResponses[1].distance)[index]
@@ -108,7 +112,7 @@ class WiFiTrilatSrv:
 
 
 
-  def __init__(self, interface, freq, discoverOnce=True):
+  def __init__(self, interface, freq, essid, psswd, ip, nm, discoverOnce=True):
     self.robotName = os.getenv('HOSTNAME')
     self.tolerance = 10
     self.x = 0
@@ -127,7 +131,9 @@ class WiFiTrilatSrv:
     self.msgs = []
     self.distances = []
 
+    cli.execute_shell("ifconfig %s down" % self.interface)
     self.wifi = Wireless(self.interface).setFrequency("%.3f" % (float(self.freq) / 1000))
+    self.connectToNet(essid, psswd,ip, nm)
 
     self.patience = rospy.Timer(rospy.Duration(2), self.patience_call)
     self.purge = rospy.Timer(rospy.Duration(2), self.distPurge)
@@ -148,22 +154,20 @@ class WiFiTrilatSrv:
   def heartbeat_call(self, event):
     # Send a packet to every WiFiTrilat server.
     for host in [s[1:s.find('/WiFi')] for s in self.client.discover()]:
-      try:
-        send(IP(dst=host)/ICMP(), iface=self.interface)
-      except OSError as e:
-        rospy.loginfo(str(e))
-        rospy.loginfo("Attempting to manually connect...")
-        essid = raw_input("Enter ESSID: ")
-        psswd = raw_input("Enter network password: ")
-        cli.execute_shell("wpa_supplicant -B -i %s -c <(wpa_passphrase %s \"%s\")" % (self.interface, essid, psswd))
-        ip = raw_input("Enter IP Address: ")
-        nm = raw_input("Enter netmask: ")
-        cli.execute_shell("ifconfig %s %s netmask %s" % (self.interface, ip, nm))
-        #cli.execute_shell("dhclient %s" % self.interface)
+      send(IP(dst=host)/ICMP(), iface=self.interface)
+
+
+  def connectToNet(self, essid, psswd, ip, nm):
+    rospy.loginfo("Attempting to manually connect...")
+    cli.execute_shell("wpa_supplicant -B -i %s -c <(wpa_passphrase %s \"%s\")" % (self.interface, essid, psswd))
+    cli.execute_shell("ifconfig %s %s netmask %s" % (self.interface, ip, nm))
+
+
+
 
   def siglevel(self, packet):
     return -(256-ord(packet.notdecoded[-4:-3]))
 
 
 if __name__ == "__main__":
-  WiFiTrilatSrv(sys.argv[1], sys.argv[2])
+  WiFiTrilatSrv(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6])

@@ -24,7 +24,7 @@ class WiFiTrilatClient:
 
   def IPtoMAC(self, IP):
     arpCache = cli.execute_shell('arp -n ' + IP)
-    mac = re.search(r"(([a-f\d]{1, 2}\:){5}[a-f\d]{1,2})", arpCache).groups()[0]
+    mac = re.search(r"(([a-f\d]{1,2}\:){5}[a-f\d]{1,2})", arpCache).groups()[0]
     return mac
 
 
