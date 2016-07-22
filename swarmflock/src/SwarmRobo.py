@@ -17,7 +17,7 @@ class SwarmRobo():
   def odom_received(self, msg):
     if(msg.header.seq % 100 == 0):
       self.odom = msg
-
+ 
 
   def msg_received(self, msg):
     # The first boolean expression makes sure we're not including ourselves.
@@ -28,6 +28,7 @@ class SwarmRobo():
        any(resp.robotName == msg.robotName for resp in self.responses)):
       
       self.responses.append(msg)
+
 
 
   # This is the callback for the patience timer. When this method is called, the robot assumes
@@ -112,6 +113,16 @@ class SwarmRobo():
     self.goals.append(msg.array)
 
 
+
+  def discover(self):
+    members = [x for x in cli.execute_shell('rostopic list | grep swarmflock').split('\n') if x$
+
+    for x in [x for x in members if x not in self.members]:
+      self.members.append(x)
+      self.boid_subs.append(rospy.Subscriber(x, BoidMsg, self.msg_received))
+
+
+
   def __init__(self):
     hostname = os.getenv('HOSTNAME')
 
@@ -119,6 +130,8 @@ class SwarmRobo():
     self.responses = []
     self.goals = []
     self.currGoal = 0
+    self.members = []
+    self.boid_subs = []
 
     # Initiliaze
     rospy.init_node('swarmmember_' + self.robotName, anonymous=False)
@@ -131,9 +144,9 @@ class SwarmRobo():
     # Setup communication channels
     self.cmd_vel  = rospy.Publisher('/' + self.robotName + '/cmd_vel_mux/input/navi', Twist, queue_size=10)
     self.odom_sub = rospy.Subscriber('/' + self.robotName + '/odom', Odometry, self.odom_received)
-    self.boid_pub = rospy.Publisher('/swarmflock1/boids', BoidMsg, queue_size=10)        
-    self.boid_sub = rospy.Subscriber('/swarmflock2/boids', BoidMsg, self.msg_received)
-    self.goal_sub = rospy.Subscriber('/swarmflock3/goals', Float32ArrayMsg, self.goal_received)
+    self.boid_pub = rospy.Publisher('/' + self.robotName + '/swarmflock/boids', BoidMsg, queue_size=10)        
+    #self.boid_sub = rospy.Subscriber('/swarmflock/boids', BoidMsg, self.msg_received)
+    self.goal_sub = rospy.Subscriber('/swarmflock/goals', Float32ArrayMsg, self.goal_received)
 
 
     # Grab global parameters
