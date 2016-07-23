@@ -9,7 +9,7 @@ from swarmflock.srv import NeighborDiscovery, NeighborDiscoveryResponse, Neighbo
 from math import radians
 from boid import Boid
 import numpy as np
-import copy, vecutils, math, sys, os
+import copy, vecutils, math, sys, os, cli
 from tf.transformations import euler_from_quaternion
 
 
@@ -121,10 +121,11 @@ class SwarmRobo():
 
 
 
-  def discover(self):
-    members = [x for x in cli.execute_shell('rostopic list | grep swarmflock').split('\n') if x$
+  def discover(self, event):
+    members = [x for x in cli.execute_shell('rostopic list | grep swarmflock/boids').split('\n') if x.find(self.robotName) == -1]
 
-    for x in [x for x in members if x not in self.members]:
+    for x in [x for x in members if x not in self.members and x != '']:
+      rospy.loginfo("Discovered member %s" % x)
       self.members.append(x)
       self.boid_subs.append(rospy.Subscriber(x, BoidMsg, self.msg_received))
 
@@ -187,6 +188,7 @@ class SwarmRobo():
     # 5 Hz
     r = rospy.Rate(5);
 
+    self.discoverTimer = rospy.Timer(rospy.Duration(1), self.discover)
     self.patience = rospy.Timer(rospy.Duration(2), self.patience_call)
     self.msgTimer = rospy.Timer(rospy.Duration(0.4), self.msgTime_call)
 
@@ -204,10 +206,8 @@ class SwarmRobo():
 
 
   def handle_nd(self, req):
-    inNeighborhood = req.robotName in [neighbor.robotName for neighbor in self.neighbors]
-
     resp = NeighborDiscoveryResponse()
-    resp.inNeighborhood = inNeighborhood
+    resp.inNeighborhood = req.robotName in [neighbor.robotName for neighbor in self.neighbors]
 
     msg = BoidMsg()
     msg.robotName = self.robotName
