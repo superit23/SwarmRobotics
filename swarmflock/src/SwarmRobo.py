@@ -11,6 +11,7 @@ from boid import Boid
 import numpy as np
 import copy, vecutils, math, sys, os, cli
 from tf.transformations import euler_from_quaternion
+from MonitorAlgo import MonitorAlgo
 
 
 class SwarmRobo():
@@ -185,12 +186,11 @@ class SwarmRobo():
     # Create Boid representation
     self.boid = Boid(location, self.maxVelocity, self.maxForce, self.desiredSep, self.neighR, self.sepWeight, self.alignWeight, self.cohWeight)
 
-    # 5 Hz
-    r = rospy.Rate(5);
-
     self.discoverTimer = rospy.Timer(rospy.Duration(1), self.discover)
     self.patience = rospy.Timer(rospy.Duration(2), self.patience_call)
     self.msgTimer = rospy.Timer(rospy.Duration(0.4), self.msgTime_call)
+
+    self.monitor = MonitorAlgo(self.robotName, self.boid)
 
     rospy.loginfo("Now spinning " + self.robotName)
     rospy.spin()

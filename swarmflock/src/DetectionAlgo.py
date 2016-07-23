@@ -35,7 +35,7 @@ class DetectionAlgo:
   def handle_msg(self, msg):
     self.lastCheckIn = time.time()
     self.lastMsg = msg
-
+ 
 
   def run(self, event):
     broadcastedPos = np.array(self.lastMsg.location)
@@ -46,10 +46,22 @@ class DetectionAlgo:
 
     shouldBePos = calcShouldBePos(getNeighbors())
 
-    suspicious = np.abs(suspectPos - broadcastedPos) > self.posThreshold
-    suspicious = np.abs(suspectPos - shouldBePos) > self.posThreshold or suspicious
-    suspicious = math.abs(time.time() - self.lastCheckIn) > self.timeThreshold or suspicious
-    self.suspicious = suspicious or self.suspicious
+    liedAboutPos = np.abs(suspectPos - broadcastedPos) > self.posThreshold
+    wrongPos = np.abs(suspectPos - shouldBePos) > self.posThreshold
+    stoppedTalking = math.abs(time.time() - self.lastCheckIn) > self.timeThreshold
+
+
+    if liedAboutPos:
+      rospy.loginfo("%s IS ANOMALOUS: Lied about its position!" % self.suspect)
+
+    if wrongPos:
+      rospy.loginfo("%s IS ANOMALOUS: Is in wrong position!" % self.suspect)
+
+    if stoppedTalking:
+      rospy.loginfo("%s IS ANOMALOUS: Has stopped talking!" % self.suspect)
+
+
+    self.suspicious = liedAboutPos or wrongPos or stoppedTalking or self.suspicious
 
 
 
