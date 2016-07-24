@@ -141,6 +141,7 @@ class SwarmRobo():
     self.currGoal = 0
     self.members = []
     self.boid_subs = []
+    self.neighbors = []
 
     # Initiliaze
     rospy.init_node('swarmmember_' + self.robotName, anonymous=False)
@@ -149,10 +150,7 @@ class SwarmRobo():
     # What to do on CTRL + C    
     rospy.on_shutdown(self.shutdown)
 
-
-    self.neighborDiscovery = rospy.Service('/' + self.robotName + '/neighbor_discovery', NeighborDiscovery, self.handle_nd)
-
-    
+   
     # Setup communication channels
     self.cmd_vel  = rospy.Publisher('/' + self.robotName + '/cmd_vel_mux/input/navi', Twist, queue_size=10)
     self.odom_sub = rospy.Subscriber('/' + self.robotName + '/odom', Odometry, self.odom_received)
@@ -186,6 +184,8 @@ class SwarmRobo():
     # Create Boid representation
     self.boid = Boid(location, self.maxVelocity, self.maxForce, self.desiredSep, self.neighR, self.sepWeight, self.alignWeight, self.cohWeight)
 
+    self.neighborDiscovery = rospy.Service('/' + self.robotName + '/neighbor_discovery', NeighborDiscovery, self.handle_nd)
+
     self.discoverTimer = rospy.Timer(rospy.Duration(1), self.discover)
     self.patience = rospy.Timer(rospy.Duration(2), self.patience_call)
     self.msgTimer = rospy.Timer(rospy.Duration(0.4), self.msgTime_call)
@@ -203,6 +203,7 @@ class SwarmRobo():
     rospy.loginfo("Stopping member " + self.robotName)
     self.cmd_vel.publish(Twist())
     rospy.sleep(1)
+
 
 
   def handle_nd(self, req):

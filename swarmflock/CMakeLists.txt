@@ -51,6 +51,7 @@ add_message_files(
 #   Message2.msg
   Float32ArrayMsg.msg
   BoidMsg.msg
+  ClaimMsg.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -166,6 +167,8 @@ include_directories(
    src/setup.sh
    src/cli.py
    src/WiFiTrilatClient.py
+   src/MonitorAlgo.py
+   src/DetectionAlgo.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
 

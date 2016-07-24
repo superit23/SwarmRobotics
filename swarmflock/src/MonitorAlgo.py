@@ -16,7 +16,7 @@ class MonitorAlgo:
     self.claims = []
     self.myClaim = ""
 
-    selectSuspect()
+    self.selectSuspect()
 
     self.dAlgo = DetectionAlgo(self.myClaim, baseBoid)
 
@@ -29,8 +29,8 @@ class MonitorAlgo:
 
 
   def selectSuspect(self):
-    members = discover()
-    notClaimed = [member for member in members not in [claim.suspect for claim in self.claims]]
+    members = self.discover()
+    notClaimed = [member for member in members if member not in [claim.suspect for claim in self.claims]]
 
     # There are n members, and each member distinctly claims one member. Therefore, if there
     # are not any members left to monitor, there is an anomaly.
