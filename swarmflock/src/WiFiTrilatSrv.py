@@ -18,11 +18,13 @@ from WiFiTrilatClient import WiFiTrilatClient
 class WiFiTrilatSrv:
 
   def handler(self, packet):
+
     if packet.haslayer(Dot11):
       # Check to make sure this is a management frame (type=0) and that
       # the subtype is one of our management frame subtypes indicating a
       # a wireless client
       #if packet.addr2 and packet.addr2.lower() == self.mac:
+
       if packet.addr2:
         rssi = self.siglevel(packet)# if self.siglevel(packet)!=-256 else -100
         self.msgs.append((packet.addr2.lower(), rssi))
@@ -114,21 +116,26 @@ class WiFiTrilatSrv:
     # We take our relative position based on alphabetical order.
     [self.x, self.y] = wifiutils.calcFrameOfRef(goodResponses[0].distance, goodResponses[2].distance, goodResponses[1].distance)[index]
 
+    if self.discoverOnce:
+      self.discoverTimer.shutdown()
 
 
 
-  def __init__(self, interface, freq, essid, psswd, ip, nm, discoverOnce=True):
+  def __init__(self, listenInt, interface, freq, essid, psswd, ip, nm, discoverOnce=True):
     self.robotName = os.getenv('HOSTNAME')
     self.tolerance = 10
     self.x = 0
     self.y = 0
     self.client = WiFiTrilatClient()
 
+    self.discoverOnce = discoverOnce
+
     rospy.init_node(self.robotName + "_wifitrilat_server")
 
     #self.rssiPub = rospy.Publisher('/' + self.robotName + '/WiFiRSSI', WiFiRSSIMsg, queue_size=10)
     self.service = rospy.Service("/" + self.robotName + "/WiFiTrilat", WiFiTrilat, self.handle_Trilat)
 
+    self.listenInt = listenInt
     self.interface = interface
     #self.mac = mac.lower()
     self.freq = int(freq)
@@ -144,13 +151,10 @@ class WiFiTrilatSrv:
     self.purge = rospy.Timer(rospy.Duration(2), self.distPurge)
     self.heartbeat = rospy.Timer(rospy.Duration(1), self.heartbeat_call)
 
-    if discoverOnce:
-      self.findSelfPos(None)
-    else:
-      self.discoverTimer = rospy.Timer(rospy.Duration(2), self.findSelfPos)
+    self.discoverTimer = rospy.Timer(rospy.Duration(2), self.findSelfPos)
 
 
-    sniff(iface=self.interface, prn=self.handler, store=0)
+    sniff(iface=self.listenInt, prn=self.handler, store=0)
     rospy.spin()
 
 
@@ -175,4 +179,4 @@ class WiFiTrilatSrv:
 
 
 if __name__ == "__main__":
-  WiFiTrilatSrv(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6])
+  WiFiTrilatSrv(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6], sys.argv[7])
