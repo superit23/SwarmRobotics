@@ -34,11 +34,7 @@ class WiFiTrilatClient:
 
     services = [rospy.ServiceProxy(service, WiFiTrilat) for service in servers]
 
-    if len(service) > 1:
-      return [service(mac, time.time(), 10) for service in services]
-    else:
-      return services(mac, time.time(), 10)
-
+    return [service(mac, time.time(), 100) for service in services]
 
 
 

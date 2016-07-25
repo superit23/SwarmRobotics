@@ -118,6 +118,7 @@ class SwarmRobo():
 
 
   def goal_received(self, msg):
+    rospy.loginfo("Received goal " + str(msg.array))
     self.goals.append(msg.array)
 
 

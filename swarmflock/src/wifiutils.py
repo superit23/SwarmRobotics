@@ -39,6 +39,10 @@ def calcFrameOfRef(d12, d23, d13):
   p1 = [0, 0]
   p2 = [d12, 0]
 
+  print "D12 " + str(d12)
+  print "D23 " + str(d23)
+  print "D13 " + str(d13)
+
   #x = d13 * math.sin(math.atan(float(d23) / d13))
   #y = (d23 ** 2 - x ** 2) ** (1/2.0)
   x2 = float(d12)

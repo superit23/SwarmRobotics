@@ -7,7 +7,7 @@ import wifiutils
 #import hotspot
 import sys, cli
 import os, time, math
-from scapy.all import sniff, Dot11, get_if_hwaddr, sendp, IP, ICMP
+from scapy.all import sniff, Dot11, get_if_hwaddr, IP, ICMP, sr
 from pythonwifi.iwlibs import Wireless, Iwrange
 from netaddr import OUI
 from itertools import groupby
@@ -54,6 +54,8 @@ class WiFiTrilatSrv:
     rospy.loginfo("Purging distances. Currently have " + str(len(self.distances)))
 
     now = time.time()
+
+
     self.distances = [x for x in self.distances if x[2] + self.tolerance > now]
     self.distances = sorted(self.distances, key=itemgetter(2))
 
@@ -76,13 +78,12 @@ class WiFiTrilatSrv:
   # This function will attempt to find this server's position relative to the other servers.
   def findSelfPos(self, event):
     mac = get_if_hwaddr(self.interface)
-    print mac
     servers = self.client.discover()
 
     while(len(servers) < 3):
       rospy.loginfo("Found only " + str(len(servers)) + " servers!")
       rospy.sleep(1)
-      servers = self.client.discover()
+      return
 
     otherServers = [x for x in servers if x.find(self.robotName) == -1]
 
@@ -95,26 +96,36 @@ class WiFiTrilatSrv:
     for x in responses:
       print x.srv_name
       print x.distance
-    goodServers = sorted([x.srv_name for x in goodResponses])
+    goodServers = [x.srv_name for x in goodResponses]
 
-    for x in goodServers:
-      print x
 
     if len(goodServers) < 2:
       rospy.loginfo("Not enough servers!")
       return
 
+    srvToUse = []
+
+    for x in goodServers:
+      srvToUse.append(x)
+
+    srvToUse.append(self.robotName)
+
+    srvToUse = sorted(srvToUse)
+
     #serverNames = sorted([s[1:s.find('/WiFi')] for s in servers])
-    index = goodServers.index(self.robotName)
+    index = srvToUse.index(self.robotName)
 
     # Next we need to find the distance between the two other servers
 
     print "Host 0 is " + goodServers[0]
     print "Host 1 is " + goodServers[1]
-    goodResponses.append(self.client.getDistances(self.client.IPtoMAC(self.client.hostToIP(goodServers[0])), goodServers[1]))
+    goodResponses.append(self.client.getDistances(self.client.IPtoMAC(self.client.hostToIP(goodServers[0])), [goodServers[1] + "/WiFiTrilat"])[0])
 
     # We take our relative position based on alphabetical order.
     [self.x, self.y] = wifiutils.calcFrameOfRef(goodResponses[0].distance, goodResponses[2].distance, goodResponses[1].distance)[index]
+
+    print self.x
+    print self.y
 
     if self.discoverOnce:
       self.discoverTimer.shutdown()
@@ -123,7 +134,7 @@ class WiFiTrilatSrv:
 
   def __init__(self, listenInt, interface, freq, essid, psswd, ip, nm, discoverOnce=True):
     self.robotName = os.getenv('HOSTNAME')
-    self.tolerance = 10
+    self.tolerance = 20
     self.x = 0
     self.y = 0
     self.client = WiFiTrilatClient()
@@ -164,7 +175,7 @@ class WiFiTrilatSrv:
   def heartbeat_call(self, event):
     # Send a packet to every WiFiTrilat server.
     for host in [s[1:s.find('/WiFi')] for s in self.client.discover()]:
-      sendp(IP(dst=host)/ICMP(), iface=self.interface)
+      sr(IP(dst=host)/ICMP(), iface=self.interface)
 
 
   def connectToNet(self, essid, psswd, ip, nm):
@@ -178,7 +189,11 @@ class WiFiTrilatSrv:
 
 
   def siglevel(self, packet):
-    return -(256-ord(packet.notdecoded[-4:-3]))
+    try:
+      return -(256-ord(packet.notdecoded[-4:-3]))
+    except TypeError as e:
+      rospy.loginfo(str(e))
+      return -256
 
 
 if __name__ == "__main__":
