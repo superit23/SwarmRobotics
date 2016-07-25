@@ -7,7 +7,7 @@ import wifiutils
 #import hotspot
 import sys, cli
 import os, time, math
-from scapy.all import sniff, Dot11, get_if_hwaddr, send, IP, ICMP
+from scapy.all import sniff, Dot11, get_if_hwaddr, sendp, IP, ICMP
 from pythonwifi.iwlibs import Wireless, Iwrange
 from netaddr import OUI
 from itertools import groupby
@@ -28,8 +28,7 @@ class WiFiTrilatSrv:
       if packet.addr2:
         rssi = self.siglevel(packet)# if self.siglevel(packet)!=-256 else -100
         self.msgs.append((packet.addr2.lower(), rssi))
-
-
+        if "7c:e9:d3" in packet.addr2.lower(): rospy.loginfo("%s > %s" % (packet.addr2, packet.addr1))
 
 
   def patience_call(self, event):
@@ -77,6 +76,7 @@ class WiFiTrilatSrv:
   # This function will attempt to find this server's position relative to the other servers.
   def findSelfPos(self, event):
     mac = get_if_hwaddr(self.interface)
+    print mac
     servers = self.client.discover()
 
     while(len(servers) < 3):
@@ -143,9 +143,10 @@ class WiFiTrilatSrv:
     self.msgs = []
     self.distances = []
 
-    cli.execute_shell("ifconfig %s down" % self.interface)
-    self.wifi = Wireless(self.interface).setFrequency("%.3f" % (float(self.freq) / 1000))
+    cli.execute_shell("ifconfig %s down" % self.listenInt)
+    #self.wifi = Wireless(self.interface).setFrequency("%.3f" % (float(self.freq) / 1000))
     self.connectToNet(essid, psswd,ip, nm)
+    cli.execute_shell("ifconfig %s up" % self.listenInt)
 
     self.patience = rospy.Timer(rospy.Duration(2), self.patience_call)
     self.purge = rospy.Timer(rospy.Duration(2), self.distPurge)
@@ -163,12 +164,14 @@ class WiFiTrilatSrv:
   def heartbeat_call(self, event):
     # Send a packet to every WiFiTrilat server.
     for host in [s[1:s.find('/WiFi')] for s in self.client.discover()]:
-      send(IP(dst=host)/ICMP(), iface=self.interface)
+      sendp(IP(dst=host)/ICMP(), iface=self.interface)
 
 
   def connectToNet(self, essid, psswd, ip, nm):
     rospy.loginfo("Attempting to manually connect...")
-    cli.execute_shell("wpa_supplicant -B -i %s -c <(wpa_passphrase %s \"%s\")" % (self.interface, essid, psswd))
+    cli.execute_shell("pkill -f wpa_supplicant")
+    cli.execute_shell('wpa_passphrase %s \"%s\" > ~/wifitrilat.conf' % (essid, psswd))
+    cli.execute_shell("wpa_supplicant -B -i %s -c ~/wifitrilat.conf " % self.interface)
     cli.execute_shell("ifconfig %s %s netmask %s" % (self.interface, ip, nm))
 
 
