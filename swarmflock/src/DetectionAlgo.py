@@ -21,6 +21,7 @@ class DetectionAlgo:
 
     self.suspect = suspect
 
+    self.suspicionPub = rospy.Publish('/' + self.suspect + '/swarmflock/suspicion', BoidMsg, queue_size=10)
     self.boidSub = rospy.Subscriber('/' + self.suspect + '/swarmflock/boids', BoidMsg, self.handle_msg)
     self.client = WiFiTrilatClient()
 
@@ -29,6 +30,7 @@ class DetectionAlgo:
     self.suspectVel = np.array([0,0])
     self.suspectPos = np.array([0,0])
     self.suspicious = False
+
 
     self.runTimer = rospy.Timer(rospy.Duration(1), self.run)
 
@@ -65,6 +67,9 @@ class DetectionAlgo:
 
     self.suspicious = liedAboutPos or wrongPos or stoppedTalking or self.suspicious
     #self.suspicious = stoppedTalking or self.suspicious
+
+    if self.suspicious:
+      self.suspicionPub.publish(self.lastMsg)
 
 
 
