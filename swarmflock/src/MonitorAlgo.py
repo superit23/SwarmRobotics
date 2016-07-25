@@ -32,8 +32,8 @@ class MonitorAlgo:
     members = self.discover()
 
     # notClaimed is a list of all members that have not been claimed and is not the current robot.
-    notClaimed = [member for member in members if (member not in [claim.suspect for claim in self.claims]
-                 and member != self.robotName)]
+    notClaimed = sorted([member for member in members if (member not in [claim.suspect for claim in self.claims]
+                 and member != self.robotName)])
 
     # There are n members, and each member distinctly claims one member. Therefore, if there
     # are not any members left to monitor, there is an anomaly.
@@ -42,10 +42,14 @@ class MonitorAlgo:
       if self.myClaim == "":
         self.myClaim = self.robotName
 
-      self.myClaim = notClaimed[0]
+      # This takes the next robot relative to the last suspect or, when it's the first time, itself.
+      index = (notClaimed.index(self.myClaim) + 1) % len(notClaimed)
+
+
+      self.myClaim = notClaimed[index]
       claim = ClaimMsg()
       claim.claimer = self.robotName
-      claim.suspect = notClaimed[0]
+      claim.suspect = notClaimed[index]
 
       self.claimPub.publish(claim)
     else:
