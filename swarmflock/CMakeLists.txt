@@ -169,6 +169,7 @@ include_directories(
    src/WiFiTrilatClient.py
    src/MonitorAlgo.py
    src/DetectionAlgo.py
+   src/statutils.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
 

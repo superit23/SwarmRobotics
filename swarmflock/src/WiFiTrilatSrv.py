@@ -3,13 +3,12 @@
 import rospy
 #from swarmflock.msg import WiFiRSSIMsg
 from swarmflock.srv import *
-import wifiutils
+import wifiutils, statutils
 #import hotspot
 import sys, cli
 import os, time, math
 from scapy.all import sniff, Dot11, get_if_hwaddr, IP, ICMP, sr
 from pythonwifi.iwlibs import Wireless, Iwrange
-from netaddr import OUI
 from itertools import groupby
 from operator import itemgetter
 from WiFiTrilatClient import WiFiTrilatClient
@@ -25,51 +24,50 @@ class WiFiTrilatSrv:
       # a wireless client
       #if packet.addr2 and packet.addr2.lower() == self.mac:
 
-      if packet.addr2:
+      if packet.addr3:
         rssi = self.siglevel(packet)# if self.siglevel(packet)!=-256 else -100
-        self.msgs.append((packet.addr2.lower(), rssi))
-        if "7c:e9:d3" in packet.addr2.lower(): rospy.loginfo("%s > %s" % (packet.addr2, packet.addr1))
+        self.msgs.append((packet.addr3.lower(), rssi, time.time()))
 
-
-  def patience_call(self, event):
-    self.msgs.sort()
-    byMAC = groupby(self.msgs, lambda x: x[0])
-
-    for key, group in byMAC:
-      mac = key
-      rssis = [p[1] for p in group if p[1] > -230]
-
-      if len(rssis) == 0:
-        continue
-
-      avg = sum(rssis) / len(rssis)
-      self.distances.append((mac, wifiutils.calcDistance(avg, self.freq), time.time()))
-
-
-    self.msgs = []
+        #if "7c:e9:d3" in packet.addr3.lower():
+        #  rospy.loginfo("ADDR3: %s > %s ? %s" % (packet.addr2, packet.addr1, packet.addr3))
+        #elif "7c:e9:d3" in packet.addr2.lower():
+        #  rospy.loginfo("ADDR2: %s > %s" % (packet.addr2, packet.addr2))
 
 
 
-  def distPurge(self, event):
-    rospy.loginfo("Purging distances. Currently have " + str(len(self.distances)))
+  def msgPurge(self, event):
+    #rospy.loginfo("Purging messages. Currently have " + str(len(self.msgs)))
 
     now = time.time()
 
 
-    self.distances = [x for x in self.distances if x[2] + self.tolerance > now]
-    self.distances = sorted(self.distances, key=itemgetter(2))
+    self.msgs = [x for x in self.msgs if x[2] + self.tolerance > now]
+    self.msgs = sorted(self.msgs, key=itemgetter(2))
 
-    rospy.loginfo("Distances purged! Now have " + str(len(self.distances)))
+    rospy.loginfo("Messages purged! Now have " + str(len(self.msgs)))
 
 
 
 
   def handle_Trilat(self, req):
-    distances = [x for x in self.distances if x[0] == req.mac_address and math.fabs(req.time - x[2]) <= req.tolerance]
-    numElem = len(distances)
+    rospy.loginfo("Handling distance request for %s" % req.mac_address)
+    msgs = [x for x in self.msgs if x[0] == req.mac_address and math.fabs(req.time - x[2]) <= req.tolerance and x[1] > -230]    
+
+    numElem = len(msgs)
 
     if numElem > 0:
-      return WiFiTrilatResponse(self.robotName, distances[numElem - 1][1], distances[numElem - 1][2], self.x, self.y)
+      sigs = [msg[1] for msg in msgs]
+
+      mad = statutils.mad(sigs)
+      sigs = statutils.remOutliers(sigs, mad)
+
+      avgSig = sum(sigs) / numElem
+      distance = wifiutils.calcDistance(avgSig, self.freq)
+
+      times = [msg[2] for msg in msgs]
+      avgTime = sum(times) / numElem
+
+      return WiFiTrilatResponse(self.robotName, distance, avgTime, self.x, self.y)
     else:
       return WiFiTrilatResponse(self.robotName, -1, -1, self.x, self.y)
 
@@ -82,7 +80,6 @@ class WiFiTrilatSrv:
 
     while(len(servers) < 3):
       rospy.loginfo("Found only " + str(len(servers)) + " servers!")
-      rospy.sleep(1)
       return
 
     otherServers = [x for x in servers if x.find(self.robotName) == -1]
@@ -122,12 +119,17 @@ class WiFiTrilatSrv:
     goodResponses.append(self.client.getDistances(self.client.IPtoMAC(self.client.hostToIP(goodServers[0])), [goodServers[1] + "/WiFiTrilat"])[0])
 
     # We take our relative position based on alphabetical order.
-    [self.x, self.y] = wifiutils.calcFrameOfRef(goodResponses[0].distance, goodResponses[2].distance, goodResponses[1].distance)[index]
+    try:
+      [self.x, self.y] = wifiutils.calcFrameOfRef(goodResponses[0].distance, goodResponses[2].distance, goodResponses[1].distance)[index]
+    except ValueError as e:
+      rospy.logwarn(str(e))
+      return
 
     print self.x
     print self.y
 
     if self.discoverOnce:
+      rospy.loginfo("Position resolved; shutting down timer...")
       self.discoverTimer.shutdown()
 
 
@@ -152,18 +154,15 @@ class WiFiTrilatSrv:
     self.freq = int(freq)
 
     self.msgs = []
-    self.distances = []
 
     cli.execute_shell("ifconfig %s down" % self.listenInt)
     #self.wifi = Wireless(self.interface).setFrequency("%.3f" % (float(self.freq) / 1000))
     self.connectToNet(essid, psswd,ip, nm)
     cli.execute_shell("ifconfig %s up" % self.listenInt)
 
-    self.patience = rospy.Timer(rospy.Duration(2), self.patience_call)
-    self.purge = rospy.Timer(rospy.Duration(2), self.distPurge)
+    self.purge = rospy.Timer(rospy.Duration(2), self.msgPurge)
     self.heartbeat = rospy.Timer(rospy.Duration(1), self.heartbeat_call)
-
-    self.discoverTimer = rospy.Timer(rospy.Duration(2), self.findSelfPos)
+    self.discoverTimer = rospy.Timer(rospy.Duration(20), self.findSelfPos)
 
 
     sniff(iface=self.listenInt, prn=self.handler, store=0)
@@ -175,7 +174,8 @@ class WiFiTrilatSrv:
   def heartbeat_call(self, event):
     # Send a packet to every WiFiTrilat server.
     for host in [s[1:s.find('/WiFi')] for s in self.client.discover()]:
-      sr(IP(dst=host)/ICMP(), iface=self.interface)
+      #sr(IP(dst=host)/ICMP(), iface=self.interface)
+      cli.execute(command='ping -c 4 %s' % host, wait=False, shellexec=True)
 
 
   def connectToNet(self, essid, psswd, ip, nm):
@@ -192,7 +192,7 @@ class WiFiTrilatSrv:
     try:
       return -(256-ord(packet.notdecoded[-4:-3]))
     except TypeError as e:
-      rospy.loginfo(str(e))
+      #rospy.logwarn(str(e))
       return -256
 
 
