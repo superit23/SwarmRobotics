@@ -3,7 +3,7 @@
 import rospy, cli
 import numpy as np
 from DetectionAlgo import DetectionAlgo
-from swarmflock.msg import ClaimMsg
+from swarmflock.msg import SuspicionMsg
 from collections import Counter
 
 class MonitorAlgo:
@@ -11,13 +11,11 @@ class MonitorAlgo:
   def __init__(self, robotName, baseBoid, suspect=""):
     self.robotName = robotName
 
-    self.claimPub = rospy.Publisher('/swarmflock/claims', ClaimMsg, queue_size=10)
-    self.claimSub = rospy.Subscriber('/swarmflock/claims', ClaimMsg, self.handle_claim)
-    self.claims = []
-    self.myClaim = ""
+    self.suspect = ""
+    self.confirmFor = ""
 
     self.timer = rospy.Timer(rospy.Duration(15), self.reset_suspect)
-
+    self.suspSub = rospy.Subscriber('/swarmflock/suspicion', SuspicionMsg, self.handle_suspicion)
     self.manualSuspect = suspect
 
 
@@ -31,32 +29,33 @@ class MonitorAlgo:
   def selectSuspect(self):
     members = self.discover()
 
-    # notClaimed is a list of all members that have not been claimed and is not the current robot.
-    notClaimed = sorted([member for member in members if (member not in [claim.suspect for claim in self.claims]
-                 and member != self.robotName)])
+    # available is a list of all members that is not the current robot.
+    available = sorted([member for member in members if member != self.robotName])
 
     # There are n members, and each member distinctly claims one member. Therefore, if there
     # are not any members left to monitor, there is an anomaly.
+    if self.suspect == "":
+      self.suspect = self.robotName
 
-    if len(notClaimed) > 0:
-      if self.myClaim == "":
-        self.myClaim = self.robotName
+    # This takes the next robot relative to the last suspect or, when it's the first time, itself.
+    index = (available.index(self.suspect) + 1) % len(available)
 
-      # This takes the next robot relative to the last suspect or, when it's the first time, itself.
-      index = (notClaimed.index(self.myClaim) + 1) % len(notClaimed)
+    self.suspect = available[index]
 
 
-      self.myClaim = notClaimed[index]
-      claim = ClaimMsg()
-      claim.claimer = self.robotName
-      claim.suspect = notClaimed[index]
 
-      self.claimPub.publish(claim)
-    else:
-      suspicious = [key for key, value in Counter([claim.claimer for claim in self.claims]).most_common() if value > 1]
+  def selectConfirmFor(self):
+    members = self.discover()
+    available = sorted([member for member in members if member != self.robotName])
 
-      for anomaly in suspicious:
-        rospy.loginfo("%s IS ANOMALOUS: This unit has claimed more than one suspect!")
+    if self.confirmFor == "":
+      self.confirmFor = self.robotName
+
+    # This takes the next robot relative to the last suspect or, when it's the first time, itself.
+    index = (available.index(self.confirmFor) + 2) % len(available)
+
+    self.confirmFor = available[index]
+
 
 
 
@@ -68,25 +67,24 @@ class MonitorAlgo:
     # Otherwise, this must be the first round of monitoring for a third-party confirmation.
     if self.manualSuspect == "":
       self.selectSuspect()
-    elif self.manualSuspect == self.myClaim:
+      self.selectConfirmFor()
+
+    elif self.manualSuspect == self.suspect:
       self.timer.shutdown()
       self.dAlgo = None
       return
+
     else:
-      self.myClaim = self.manualSuspect
+      self.suspect = self.manualSuspect
 
-    self.dAlgo = DetectionAlgo(self.myClaim, baseBoid)
-
-
+    self.dAlgo = DetectionAlgo(self.robotName, self.suspect, False, baseBoid)
 
 
+  def handle_suspicion(self, suspMsg):
+    # If this is the first confirmation or the suspect has not been handled or if the last confirmation on the same is complete,
+    # then handle it. This prevents a compromised host constantly reseting the algorithm.
+    if suspMsg.robotName == self.confirmFor and not suspMsg.isConfirmation and (not self.confirmation or not (self.confirmation.suspect == suspMsg.boid.robotName and self.confirmation.dAlgo)):
+      self.confirmation = MonitorAlgo(self.robotName, self.boid, suspMsg.boid.robotName)
 
-  def handle_claim(self, claim):
-    #if(claim.suspect == self.suspect and claim.claimer != self.robotName):
-    #  self.claimPub()
-    self.claims.append(claim)
-
-
-
-  def handle_suspicion(self, boidMsg):
-    self.confirmation = MonitorAlgo(self.robotName, self.boid, boidMsg.robotName)
+    elif suspMsg.isConfirmation and self.suspect == suspMsg.boid.robotName:
+      rospy.logwarn("SUSPICIONS CONFIRMED ON %s" % self.suspect)

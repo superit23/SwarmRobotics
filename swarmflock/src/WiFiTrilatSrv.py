@@ -129,8 +129,9 @@ class WiFiTrilatSrv:
     print self.y
 
     if self.discoverOnce:
-      rospy.loginfo("Position resolved; shutting down timer...")
+      rospy.loginfo("Position resolved; shutting down heartbeat/findpos")
       self.discoverTimer.shutdown()
+      self.heartbeat.shutdown()
 
 
 

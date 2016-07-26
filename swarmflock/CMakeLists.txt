@@ -51,7 +51,7 @@ add_message_files(
 #   Message2.msg
   Float32ArrayMsg.msg
   BoidMsg.msg
-  ClaimMsg.msg
+  SuspicionMsg.msg
 )
 
 ## Generate services in the 'srv' folder
