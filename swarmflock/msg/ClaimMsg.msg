@@ -1,2 +1,0 @@
-string claimer
-string suspect
