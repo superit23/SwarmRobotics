@@ -65,6 +65,8 @@ class MonitorAlgo:
     # If we have asked for a suspect, but we've already watched them, stop monitoring them.
     # This is to enable a one-time, third-party confirmation of an anomalous robot.
     # Otherwise, this must be the first round of monitoring for a third-party confirmation.
+    isConfirm = False
+
     if self.manualSuspect == "":
       self.selectSuspect()
       self.selectConfirmFor()
@@ -76,8 +78,9 @@ class MonitorAlgo:
 
     else:
       self.suspect = self.manualSuspect
+      isConfirm = True
 
-    self.dAlgo = DetectionAlgo(self.robotName, self.suspect, False, baseBoid)
+    self.dAlgo = DetectionAlgo(self.robotName, isConfirm, self.suspect, baseBoid)
 
 
   def handle_suspicion(self, suspMsg):
