@@ -24,9 +24,9 @@ class WiFiTrilatSrv:
       # a wireless client
       #if packet.addr2 and packet.addr2.lower() == self.mac:
 
-      if packet.addr3:
+      if packet.addr2:
         rssi = self.siglevel(packet)# if self.siglevel(packet)!=-256 else -100
-        self.msgs.append((packet.addr3.lower(), rssi, time.time()))
+        self.msgs.append((packet.addr2.lower(), rssi, time.time()))
 
         #if "7c:e9:d3" in packet.addr3.lower():
         #  rospy.loginfo("ADDR3: %s > %s ? %s" % (packet.addr2, packet.addr1, packet.addr3))
@@ -61,7 +61,7 @@ class WiFiTrilatSrv:
       mad = statutils.mad(sigs)
       sigs = statutils.remOutliers(sigs, mad)
 
-      avgSig = sum(sigs) / numElem
+      avgSig = sum(sigs) / len(sigs)
       distance = wifiutils.calcDistance(avgSig, self.freq)
 
       times = [msg[2] for msg in msgs]
@@ -86,7 +86,7 @@ class WiFiTrilatSrv:
 
     # This will call the other servers' WiFiTrilatServices. To do this, we enter our own MAC address,
     # then take two servers that are NOT ours.
-    responses = self.client.getDistances(mac, otherServers)
+    responses = self.client.getDistances(mac, otherServers, time.time(), 50)
     #goodServers = [x.srv_name for x in responses if x.distance != -1]
     goodResponses = [x for x in responses if x.distance != -1]
 
@@ -106,7 +106,6 @@ class WiFiTrilatSrv:
       srvToUse.append(x)
 
     srvToUse.append(self.robotName)
-
     srvToUse = sorted(srvToUse)
 
     #serverNames = sorted([s[1:s.find('/WiFi')] for s in servers])
@@ -116,11 +115,15 @@ class WiFiTrilatSrv:
 
     print "Host 0 is " + goodServers[0]
     print "Host 1 is " + goodServers[1]
-    goodResponses.append(self.client.getDistances(self.client.IPtoMAC(self.client.hostToIP(goodServers[0])), [goodServers[1] + "/WiFiTrilat"])[0])
+    goodResponses.append(self.client.getDistances(self.client.IPtoMAC(self.client.hostToIP(goodServers[0])), ["/" + goodServers[1] + "/WiFiTrilat"])[0])
+
+    # We translate the indices, so each server will end up building the same triangle.
+    indexTrans = [(0, 2, 1), (0, 1, 2), (2, 1, 0)]
+    myInd = indexTrans[index]
 
     # We take our relative position based on alphabetical order.
     try:
-      [self.x, self.y] = wifiutils.calcFrameOfRef(goodResponses[0].distance, goodResponses[2].distance, goodResponses[1].distance)[index]
+      [self.x, self.y] = wifiutils.calcFrameOfRef(goodResponses[myInd[0]].distance, goodResponses[myInd[1]].distance, goodResponses[myInd[2]].distance)[index]
     except ValueError as e:
       rospy.logwarn(str(e))
       return

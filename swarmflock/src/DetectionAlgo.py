@@ -45,7 +45,7 @@ class DetectionAlgo:
 
   def run(self, event):
     broadcastedPos = np.array(self.lastMsg.location)
-    suspectPos = np.array(self.client.trilaterate(self.suspectMAC, self.client.discover()))
+    suspectPos = np.array(self.client.trilaterate(self.suspectMAC, self.client.discover(), time.time()))
 
     self.suspectVel = suspectPos - self.suspectPos
     self.suspectPos = suspectPos

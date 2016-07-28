@@ -6,7 +6,7 @@ def mad(arr, b=1.4826):
   arr = np.array(arr)
   med = np.median(arr)
 
-  return b * np.median(np.abs(arr - med))
+  return (b * np.median(np.abs(arr - med))) + 0.001
 
 
 def remOutliers(arr, mad, threshold=3):

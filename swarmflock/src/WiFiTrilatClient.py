@@ -8,8 +8,6 @@ import wifiutils
 class WiFiTrilatClient:
 
   def __init__(self):
-    self.robotName = os.getenv('HOSTNAME') 
-    #rospy.init_node(self.robotName + '_wifitrilat_client')
     return
 
 
@@ -28,16 +26,19 @@ class WiFiTrilatClient:
     return mac
 
 
-  def getDistances(self, mac, servers):
+  def getDistances(self, mac, servers, timeframe=-1, tolerance=5):
     for service in servers:
       print service
 
+    if timeframe == -1:
+      timeframe = time.time()
+
     services = [rospy.ServiceProxy(service, WiFiTrilat) for service in servers]
 
-    return [service(mac, time.time(), 100) for service in services]
+    return [service(mac, timeframe, tolerance) for service in services]
 
 
 
-  def trilaterate(self, mac, servers):
-    responses = self.getDistances(mac, servers[:3])
+  def trilaterate(self, mac, servers, timeframe=-1, tolerance=5):
+    responses = self.getDistances(mac, servers[:3], timeframe, tolerance)
     return wifiutils.trilaterate([responses[0].x, responses[0].y], responses[0].distance, [responses[1].x, responses[1].y], responses[1].distance, [responses[2].x, responses[2].y], responses[2].distance)
