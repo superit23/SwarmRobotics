@@ -27,7 +27,7 @@ class MonitorAlgo:
 
 
   def selectSuspect(self):
-    members = self.discover()
+    members = sorted(self.discover())
 
     # available is a list of all members that is not the current robot.
     available = sorted([member for member in members if member != self.robotName])
@@ -35,26 +35,26 @@ class MonitorAlgo:
     # There are n members, and each member distinctly claims one member. Therefore, if there
     # are not any members left to monitor, there is an anomaly.
     if self.suspect == "":
-      self.suspect = self.robotName
+      self.suspect = members[(members.index(self.robotName) + 1) % len(members)]
+    else:
+      # This takes the next robot relative to the last suspect or, when it's the first time, itself.
+      index = (available.index(self.suspect) + 1) % len(available)
 
-    # This takes the next robot relative to the last suspect or, when it's the first time, itself.
-    index = (available.index(self.suspect) + 1) % len(available)
-
-    self.suspect = available[index]
+      self.suspect = available[index]
 
 
 
   def selectConfirmFor(self):
-    members = self.discover()
+    members = sorted(self.discover())
     available = sorted([member for member in members if member != self.robotName])
 
     if self.confirmFor == "":
-      self.confirmFor = self.robotName
+      self.confirmFor = members[(members.index(self.robotName) + 2) % len(members)]
+    else:
+      # This takes the next robot relative to the last suspect or, when it's the first time, itself.
+      index = (available.index(self.confirmFor) + 1) % len(available)
 
-    # This takes the next robot relative to the last suspect or, when it's the first time, itself.
-    index = (available.index(self.confirmFor) + 2) % len(available)
-
-    self.confirmFor = available[index]
+      self.confirmFor = available[index]
 
 
 
