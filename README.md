@@ -12,7 +12,7 @@ Linux Distribution:	Ubuntu 14.04
 
 ## Implementation
 
-SwarmFlock is a Python implementation of the boid-flocking algorithm on the Robot Operating System (ROS). SwarmFlock currently uses ROS topics over a multi-master system to communicate between the robots. The robots will still only compute "boids" in their neighborhood.
+SwarmFlock is a Python implementation of the boid-flocking algorithm on the Robot Operating System (ROS) with anomaly detection. SwarmFlock currently uses ROS topics over a multi-master system to communicate between the robots. The robots will still only compute "boids" in their neighborhood.
 
 More information on the flocking algorithm can be read [here](http://harry.me/blog/2011/02/17/neat-algorithms-flocking/).
 
@@ -124,11 +124,11 @@ Used to read navigation goals for the swarm.
 
 # Installation
 
-1. Install prerequisites for ROS and catkin.
+1. Install prerequisites for ROS and Catkin.
 
 2. Create a [workspace](http://wiki.ros.org/catkin/Tutorials/create_a_workspace)
 
-3. Download SwarmFlock and copy the 'swarmflock' folder into your catkin workspace.
+3. Download SwarmFlock and copy the 'swarmflock' folder into your Catkin workspace.
 
 
 ```sh
@@ -183,7 +183,7 @@ rostopic pub /swarmflock/goals swarmflock/Float32ArrayMsg '[x, y]'
 ```
 
 
-5. The robots will attempt to use WiFiTrilation servers and flock. Use CTRL + C when you want to stop
+5. The robots will attempt to use Wi-Fi Trilateration servers and flock. Use CTRL + C when you want to stop
 
 
 
