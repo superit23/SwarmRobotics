@@ -12,11 +12,11 @@ Linux Distribution:	Ubuntu 14.04
 
 ## Implementation
 
-SwarmFlock is a Python implementation of the boid-flocking algorithm on the Robot Operating System (ROS). SwarmFlock currently uses ROS topics to communicate between the robots, and, therefore, is more of a simulation of swarm intelligence due to centralized communication. The robots will still only compute "boids" in their neighborhood.
+SwarmFlock is a Python implementation of the boid-flocking algorithm on the Robot Operating System (ROS). SwarmFlock currently uses ROS topics over a multi-master system to communicate between the robots. The robots will still only compute "boids" in their neighborhood.
 
 More information on the flocking algorithm can be read [here](http://harry.me/blog/2011/02/17/neat-algorithms-flocking/).
 
-## Scripts
+## Important Scripts
 
 ### boid.py
 
@@ -90,7 +90,7 @@ This is used in SwarmRobo.py to determine when the robot has reached the goal. F
 
 ### Topics
 
-#### /ROBOT_NAME/cmd_vel_mux/input/navi
+#### /HOSTNAME/cmd_vel_mux/input/navi
 
 Communication Type:	Publisher
 
@@ -98,7 +98,7 @@ Message Type:	geometry_msgs/Twist
 
 Used to input movement commands.
 
-#### /ROBOT_NAME/odom
+#### /HOSTNAME/odom
 
 Communication Type:	Subscriber
 
@@ -106,7 +106,7 @@ Message Type:	nav_msgs/Odometry
 
 Used to read positional data.
 
-#### /swarmflock/boids
+#### /HOSTNAME/swarmflock/boids
 
 Communication Type:	Both
 
@@ -124,62 +124,86 @@ Used to read navigation goals for the swarm.
 
 # Installation
 
-1. Install prerequisites (TODO)
+1. Install prerequisites for ROS and catkin.
 
 2. Create a [workspace](http://wiki.ros.org/catkin/Tutorials/create_a_workspace)
 
-3. Download SwarmFlock
-
-<table>
-  <tr>
-    <td>git clone https://github.com/superit23/SwarmRobotics.git</td>
-  </tr>
-</table>
+3. Download SwarmFlock and copy the 'swarmflock' folder into your catkin workspace.
 
 
-4. Set up environment variables
+```sh
+git clone https://github.com/superit23/SwarmRobotics.git
+cp -R SwarmRobotics/swarmflock ~/catkin_ws/src
+```
 
-<table>
-  <tr>
-    <td>source ~/catkin_ws/install/setup.bash</td>
-  </tr>
-</table>
+
+4. Run the setup script.
+
+```sh
+sh ~/catkin_ws/src/swarmflock/src/setup.sh
+```
 
 
 5. While in the Catkin workspace, build and install SwarmFlock
 
-<table>
-  <tr>
-    <td>catkin_make install</td>
-  </tr>
-</table>
+```sh
+catkin_make install
+```
 
 
-# Running it
+6. Set up environment variables
 
-1. Edit the parameter values in boidStart.py.
+```sh
+source ~/catkin_ws/install/setup.bash
+```
 
-2. Bring up your Turtlebots. You can use the Gazebo Concert if you want to simulate.
+
+# Running SwarmFlock
+
+1. Edit the parameter values in boidStart.py and set environment variables. If you're using the dependencies.launch file, you need to set ROS_IP, ROS_MASTER_URI, and HOSTNAME. Note: echoing $HOSTNAME will echo your hostname *even if not set*. Explicitly set this.
+
+2. Source ~/catkin_ws/*devel*/setup.bash, and run the Turtlebot:
+
+```sh
+roslaunch swarmflock dependencies.launch
+```
 
 3. Run the following command on each Turtlebot (or in different terminals):
 
-	
 
-<table>
-  <tr>
-    <td>rosrun swarmflock boidStart.py robotName</td>
-  </tr>
-</table>
+```sh
+rosrun swarmflock boidStart.py
+```
 
 
 4. Send goals to the swarm by publishing a float array to */swarmflock/goals*. Example:
 
-<table>
-  <tr>
-    <td>rostopic pub /swarmflock/goals swarmflock/Float32ArrayMsg '[x, y]'</td>
-  </tr>
-</table>
+```sh
+rostopic pub /swarmflock/goals swarmflock/Float32ArrayMsg '[x, y]'
+```
 
 
-5. Use CTRL + C when you want to stop
+5. The robots will attempt to use WiFiTrilation servers and flock. Use CTRL + C when you want to stop
 
+
+
+# Running a Wi-Fi Trilateration Server
+
+1. Same as 'Running SwarmFlock's 1 and 2.
+
+2. Run the WiFiTrilatSrv.py script with these params:
+
+```sh
+rosrun swarmflock WiFiTrilatSrv.py MON_INT CON_INT FREQ SSID PASS IP NETMASK
+```
+
+where
+MON_INT is the interface you're monitoring on (as in Monitor mode for Wi-Fi),
+CON_INT is the interface you'll use to connect to the network,
+FREQ is the frequency you'll be using,
+SSID is the SSID of the AP/network you'll be connecting to,
+PASS is the password for that network,
+IP is the IP address you'll use, and
+NETMASK is the netmask to complement the IP address.
+
+We need to connect to the network with our Wi-Fi, so we can send out pings as heartbeats. This will allow the other servers to capture the packets in Monitor mode and determine our position. Remember, you need an interface to connect to with ROS as well. A typical setup may have the Wi-Fi Trilateration servers running ROS networking over wired interface and monitoring/sending heartbeats over Wi-Fi.
